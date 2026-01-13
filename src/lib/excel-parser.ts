@@ -12,7 +12,24 @@ export interface ParseResult {
   columnMetadata: ColumnMetadata[];
 }
 
-export const parseExcelFile = async (file: File): Promise<ParseResult> => {
+export const getExcelSheetNames = async (file: File): Promise<string[]> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const data = e.target?.result;
+        const workbook = read(data, { type: 'binary' });
+        resolve(workbook.SheetNames);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = (error) => reject(error);
+    reader.readAsBinaryString(file);
+  });
+};
+
+export const parseExcelFile = async (file: File, sheetName?: string): Promise<ParseResult> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -20,8 +37,14 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
       try {
         const data = e.target?.result;
         const workbook = read(data, { type: 'binary' });
-        const firstSheetName = workbook.SheetNames[0];
-        const worksheet = workbook.Sheets[firstSheetName];
+
+        const targetSheetName = sheetName || workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[targetSheetName];
+
+        if (!worksheet) {
+          reject(new Error(`Sheet "${targetSheetName}" not found.`));
+          return;
+        }
 
         // Parse as array of arrays first to find the header row
         // header: 1 produces an array of arrays [ ["A", "B"], [1, 2] ]
