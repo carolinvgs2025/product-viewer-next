@@ -1,0 +1,203 @@
+"use client";
+
+import React, { createContext, useContext, useState, useMemo, useCallback } from 'react';
+import { ColumnMetadata } from '@/lib/excel-parser';
+
+export interface FilterState {
+    [column: string]: Set<string>; // column -> selected values
+}
+
+interface ProjectContextType {
+    data: any[];
+    originalData: any[];
+    filteredData: any[];
+    headers: string[];
+    columnMetadata: ColumnMetadata[];
+    images: Record<string, string>;
+    filters: FilterState;
+    showOnlyChanged: boolean;
+    setShowOnlyChanged: (show: boolean) => void;
+    setProjectData: (result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => void;
+    updateImages: (newImages: Record<string, string>) => void;
+    updateCell: (rowIndex: number, column: string, value: any) => void;
+    bulkUpdate: (updates: { rowIndex: number, column: string, value: any }[]) => void;
+    uniqueValues: Record<string, string[]>; // Map of Header -> Unique Options
+    setFilter: (column: string, values: Set<string>) => void;
+    clearFilters: () => void;
+    undo: () => void;
+    canUndo: boolean;
+}
+
+const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
+
+const MAX_HISTORY = 50;
+
+export function ProjectProvider({ children }: { children: React.ReactNode }) {
+    const [data, setData] = useState<any[]>([]);
+    const [originalData, setOriginalData] = useState<any[]>([]);
+    const [headers, setHeaders] = useState<string[]>([]);
+    const [columnMetadata, setColumnMetadata] = useState<ColumnMetadata[]>([]);
+    const [images, setImages] = useState<Record<string, string>>({});
+    const [filters, setFilters] = useState<FilterState>({});
+    const [showOnlyChanged, setShowOnlyChanged] = useState(false);
+    const [history, setHistory] = useState<any[][]>([]);
+
+    const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => {
+        setHeaders(result.headers);
+        // Add original index to each row for reliable updates
+        const dataWithIndices = result.data.map((row, index) => ({
+            ...row,
+            __rowIndex: index
+        }));
+        setData(dataWithIndices);
+        setOriginalData(JSON.parse(JSON.stringify(dataWithIndices))); // Deep copy for baseline
+        setColumnMetadata(result.columnMetadata || []);
+        setFilters({}); // Clear filters on new data
+        setShowOnlyChanged(false);
+        setHistory([]); // Clear history on new data
+    }, []);
+
+    const updateImages = useCallback((newImages: Record<string, string>) => {
+        setImages(prev => ({ ...prev, ...newImages }));
+    }, []);
+
+    const pushToHistory = useCallback((currentData: any[]) => {
+        setHistory(prev => [currentData, ...prev].slice(0, MAX_HISTORY));
+    }, []);
+
+    const updateCell = useCallback((rowIndex: number, column: string, value: any) => {
+        setData(prevData => {
+            pushToHistory(prevData);
+            const newData = [...prevData];
+            if (newData[rowIndex]) {
+                newData[rowIndex] = { ...newData[rowIndex], [column]: value };
+            }
+            return newData;
+        });
+    }, [pushToHistory]);
+
+    const bulkUpdate = useCallback((updates: { rowIndex: number, column: string, value: any }[]) => {
+        setData(prevData => {
+            pushToHistory(prevData);
+            const newData = [...prevData];
+            updates.forEach(({ rowIndex, column, value }) => {
+                if (newData[rowIndex]) {
+                    newData[rowIndex] = { ...newData[rowIndex], [column]: value };
+                }
+            });
+            return newData;
+        });
+    }, [pushToHistory]);
+
+    const undo = useCallback(() => {
+        setHistory(prev => {
+            if (prev.length === 0) return prev;
+            const [lastState, ...remaining] = prev;
+            setData(lastState);
+            return remaining;
+        });
+    }, []);
+
+    const setFilter = useCallback((column: string, values: Set<string>) => {
+        setFilters(prev => {
+            const newFilters = { ...prev };
+            if (values.size === 0) {
+                delete newFilters[column];
+            } else {
+                newFilters[column] = values;
+            }
+            return newFilters;
+        });
+    }, []);
+
+    const clearFilters = useCallback(() => {
+        setFilters({});
+    }, []);
+
+    // Compute filtered data
+    const filteredData = useMemo(() => {
+        let result = data;
+
+        // 1. "Show only changed items" filter
+        if (showOnlyChanged) {
+            result = result.filter((row, idx) => {
+                const originalRow = originalData[idx];
+                if (!originalRow) return false;
+                // Compare relevant fields (exclude our internal index)
+                return headers.some(h => String(row[h]) !== String(originalRow[h]));
+            });
+        }
+
+        // 2. Column-specific filters
+        if (Object.keys(filters).length > 0) {
+            result = result.filter(row => {
+                return Object.entries(filters).every(([column, selectedValues]) => {
+                    if (selectedValues.has('__HAS_VALUE__')) {
+                        const cellValue = row[column];
+                        return cellValue !== null && cellValue !== undefined && String(cellValue).trim() !== '';
+                    }
+                    const cellValue = String(row[column] || "");
+                    return selectedValues.has(cellValue);
+                });
+            });
+        }
+
+        return result;
+    }, [data, originalData, filters, showOnlyChanged, headers]);
+
+    // Compute unique values for Smart Dropdowns
+    const uniqueValues = useMemo(() => {
+        const map: Record<string, Set<string>> = {};
+        const result: Record<string, string[]> = {};
+
+        headers.forEach(h => map[h] = new Set());
+
+        data.forEach(row => {
+            headers.forEach(h => {
+                const val = row[h];
+                if (val) map[h].add(String(val));
+            });
+        });
+
+        headers.forEach(h => {
+            if (map[h].size > 0 && map[h].size < 30) {
+                result[h] = Array.from(map[h]).sort();
+            }
+        });
+
+        return result;
+    }, [data, headers]);
+
+    return (
+        <ProjectContext.Provider value={{
+            data,
+            originalData,
+            filteredData,
+            headers,
+            columnMetadata,
+            images,
+            filters,
+            showOnlyChanged,
+            setShowOnlyChanged,
+            setProjectData,
+            updateImages,
+            updateCell,
+            bulkUpdate,
+            uniqueValues,
+            setFilter,
+            clearFilters,
+            undo,
+            canUndo: history.length > 0
+        }}>
+            {children}
+        </ProjectContext.Provider>
+    );
+}
+
+export function useProject() {
+    const context = useContext(ProjectContext);
+    if (context === undefined) {
+        throw new Error('useProject must be used within a ProjectProvider');
+    }
+    return context;
+}
