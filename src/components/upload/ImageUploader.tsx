@@ -30,9 +30,8 @@ export function ImageUploader() {
     }, []);
 
     const processQueue = async () => {
-        if (queueRef.current.length === 0 && activeUploadsRef.current === 0) {
+        if (queueRef.current.length === 0) {
             setUploading(false);
-            // Flush remaining results
             if (Object.keys(resultsBufferRef.current).length > 0) {
                 updateImages(resultsBufferRef.current);
                 resultsBufferRef.current = {};
@@ -40,59 +39,20 @@ export function ImageUploader() {
             return;
         }
 
-        while (activeUploadsRef.current < MAX_CONCURRENT_UPLOADS && queueRef.current.length > 0) {
-            const file = queueRef.current.shift();
-            if (!file) break;
+        const files = [...queueRef.current];
+        queueRef.current = [];
 
-            activeUploadsRef.current++;
+        const newImages: Record<string, string> = {};
 
-            // Upload single file
-            // We don't await here to allow parallel processing
-            uploadFile(file).then(() => {
-                activeUploadsRef.current--;
-                processQueue(); // Recursive call to pick up next
-            });
-        }
-    };
-
-    const uploadFile = async (file: File) => {
-        try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            const res = await fetch('/api/upload', {
-                method: 'POST',
-                body: formData,
-            });
-
-            if (!res.ok) {
-                const errorData = await res.json().catch(() => ({}));
-                throw new Error(errorData.error || `Server responded with ${res.status}`);
-            }
-
-            const data = await res.json();
-
-            if (data.success && data.filename) {
-                resultsBufferRef.current[data.filename] = data.url;
-            } else {
-                throw new Error('Upload failed: Missing filename or success flag');
-            }
-
+        for (const file of files) {
+            // Create a local blob URL for the image
+            const url = URL.createObjectURL(file);
+            newImages[file.name] = url;
             setProgress(prev => ({ ...prev, current: prev.current + 1 }));
-
-        } catch (e) {
-            if (e instanceof TypeError && e.message === 'Failed to fetch') {
-                console.error(`Network error uploading ${file.name}: Is the server running?`, e);
-            } else {
-                console.error(`Failed to upload ${file.name}`, e);
-            }
-            setProgress(prev => ({ ...prev, current: prev.current + 1, failed: prev.failed + 1 }));
-        } finally {
-            if (Object.keys(resultsBufferRef.current).length >= 10) {
-                updateImages(resultsBufferRef.current);
-                resultsBufferRef.current = {};
-            }
         }
+
+        updateImages(newImages);
+        setUploading(false);
     };
 
     const startUpload = (files: FileList) => {
@@ -158,10 +118,10 @@ export function ImageUploader() {
 
                     <div className="space-y-1">
                         <h3 className="text-lg font-semibold dark:text-white">
-                            {uploading ? `Uploading images... ${percent}%` : "Drop images here"}
+                            {uploading ? `Processing images... ${percent}%` : "Drop images here"}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Bulk upload supported (1000+)
+                            Fast browser-based processing (1000+)
                         </p>
                     </div>
                 </div>
