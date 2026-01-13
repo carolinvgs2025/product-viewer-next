@@ -2,17 +2,20 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Edit2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductDetailModalProps {
     isOpen: boolean;
     onClose: () => void;
     product: any;
+    rowIndex: number | null;
     headers: string[];
+    uniqueValues: Record<string, string[]>;
     imageUrl?: string;
     onNext?: () => void;
     onPrevious?: () => void;
+    onUpdate: (rowIndex: number, column: string, value: any) => void;
     hasMultiple?: boolean;
 }
 
@@ -20,10 +23,13 @@ export function ProductDetailModal({
     isOpen,
     onClose,
     product,
+    rowIndex,
     headers,
+    uniqueValues,
     imageUrl,
     onNext,
     onPrevious,
+    onUpdate,
     hasMultiple
 }: ProductDetailModalProps) {
     // Keyboard navigation
@@ -40,7 +46,7 @@ export function ProductDetailModal({
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose, onNext, onPrevious]);
 
-    if (!product) return null;
+    if (!product || rowIndex === null) return null;
 
     // Separate Title/Name from other attributes for clean display
     const titleField = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('title')) || headers[0];
@@ -71,7 +77,7 @@ export function ProductDetailModal({
                         {/* Close Button */}
                         <button
                             onClick={onClose}
-                            className="absolute top-4 right-4 z-50 p-2 bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 rounded-full text-gray-800 dark:text-white transition-colors"
+                            className="absolute top-4 right-4 z-50 p-2 bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 rounded-full text-gray-800 dark:text-white transition-colors border border-white/10"
                         >
                             <X className="w-5 h-5" />
                         </button>
@@ -95,9 +101,12 @@ export function ProductDetailModal({
                         )}
 
                         {/* Left Side: Hero Image */}
-                        <div className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 relative flex items-center justify-center p-12 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800">
+                        <div className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 relative flex items-center justify-center p-12 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 overflow-hidden">
                             {imageUrl ? (
-                                <img
+                                <motion.img
+                                    key={imageUrl}
+                                    initial={{ opacity: 0, scale: 0.9 }}
+                                    animate={{ opacity: 1, scale: 1 }}
                                     src={imageUrl}
                                     alt={String(title)}
                                     className="w-full h-full max-h-[60vh] object-contain drop-shadow-2xl"
@@ -105,7 +114,7 @@ export function ProductDetailModal({
                             ) : (
                                 <div className="text-gray-300 flex flex-col items-center gap-4">
                                     <span className="text-6xl">📷</span>
-                                    <p className="text-lg font-medium">No Image Available</p>
+                                    <p className="text-lg font-medium text-gray-400">No Image Available</p>
                                 </div>
                             )}
                         </div>
@@ -113,30 +122,64 @@ export function ProductDetailModal({
                         {/* Right Side: Data & Attributes */}
                         <div className="w-full md:w-1/2 flex flex-col bg-white/80 dark:bg-gray-900/90 backdrop-blur-sm">
                             {/* Header Section */}
-                            <div className="p-8 pb-4 border-b border-gray-100 dark:border-gray-800">
-                                <label className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-2 block">
+                            <div className="p-8 pb-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-white/5">
+                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1 block">
                                     {titleField}
                                 </label>
-                                <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white leading-tight">
-                                    {String(title || "Untitled Product")}
-                                </h2>
+                                <textarea
+                                    value={String(title || "")}
+                                    onChange={(e) => onUpdate(rowIndex, titleField, e.target.value)}
+                                    className="w-full text-2xl md:text-3xl font-extrabold bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 resize-none min-h-[80px]"
+                                    placeholder="Enter title..."
+                                />
                             </div>
 
                             {/* Attributes List */}
-                            <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
-                                <div className="grid grid-cols-1 gap-6">
+                            <div className="flex-1 overflow-y-auto p-8 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+                                <div className="grid grid-cols-1 gap-2">
                                     {otherHeaders.map((header) => {
-                                        const value = product[header];
-                                        if (!value) return null; // Clean mode: Hide empty fields in this view
+                                        const value = product[header] || "";
+                                        const options = uniqueValues[header];
+                                        const isDropdown = options && options.length > 0;
 
                                         return (
-                                            <div key={header} className="group flex flex-col gap-1 border-b border-gray-50 dark:border-gray-800/50 pb-3 last:border-0 hover:bg-gray-50 dark:hover:bg-white/5 p-2 -mx-2 rounded-lg transition-colors">
-                                                <label className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                                            <div key={header} className="group flex flex-col gap-1 border-b border-gray-50 dark:border-gray-800/30 pb-3 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 p-3 rounded-xl transition-all">
+                                                <label className="text-[10px] font-bold text-blue-500 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                    <Edit2 className="w-2.5 h-2.5 opacity-40" />
                                                     {header}
                                                 </label>
-                                                <p className="text-base font-medium text-gray-700 dark:text-gray-200">
-                                                    {String(value)}
-                                                </p>
+
+                                                {isDropdown ? (
+                                                    <div className="relative mt-1">
+                                                        <select
+                                                            value={String(value)}
+                                                            onChange={(e) => onUpdate(rowIndex, header, e.target.value)}
+                                                            className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer"
+                                                        >
+                                                            <option value="" disabled>Select...</option>
+                                                            {options.map(opt => (
+                                                                <option key={opt} value={opt}>{opt}</option>
+                                                            ))}
+                                                            {!options.includes(String(value)) && value && (
+                                                                <option value={String(value)}>{String(value)}</option>
+                                                            )}
+                                                        </select>
+                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                                    </div>
+                                                ) : (
+                                                    <textarea
+                                                        value={String(value)}
+                                                        onChange={(e) => onUpdate(rowIndex, header, e.target.value)}
+                                                        className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-medium text-gray-700 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-700 resize-none min-h-[24px]"
+                                                        placeholder="Empty"
+                                                        rows={1}
+                                                        onInput={(e) => {
+                                                            const target = e.target as HTMLTextAreaElement;
+                                                            target.style.height = 'auto';
+                                                            target.style.height = target.scrollHeight + 'px';
+                                                        }}
+                                                    />
+                                                )}
                                             </div>
                                         );
                                     })}
@@ -144,15 +187,15 @@ export function ProductDetailModal({
                             </div>
 
                             {/* Footer / Actions */}
-                            <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center text-xs text-gray-400 font-medium">
-                                <span>ROW {product.__rowIndex ? product.__rowIndex + 1 : "?"}</span>
+                            <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                <span>ITEM {rowIndex + 1} OF {hasMultiple ? "MULTIPLE" : "1"}</span>
 
                                 <div className="flex items-center gap-2">
-                                    <span className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                                        Esc to close
+                                    <span className="px-2 py-1 rounded-md bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                        ESC TO CLOSE
                                     </span>
-                                    <span className="px-2 py-1 rounded bg-gray-200 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                                        ← → to navigate
+                                    <span className="px-2 py-1 rounded-md bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
+                                        ← → NAVIGATE
                                     </span>
                                 </div>
                             </div>

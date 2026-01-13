@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel-export';
 
 function Dashboard() {
-    const { data, filteredData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, images } = useProject();
+    const { data, filteredData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, images, uniqueValues, updateCell } = useProject();
     const [viewMode, setViewMode] = useState<'upload' | 'grid'>('upload');
     const [isExporting, setIsExporting] = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(false);
@@ -329,7 +329,10 @@ function Dashboard() {
                         isOpen={selectedProductIndex !== null}
                         onClose={() => setSelectedProductIndex(null)}
                         product={filteredData && filteredData[selectedProductIndex] ? filteredData[selectedProductIndex] : data[selectedProductIndex]}
+                        rowIndex={selectedProductIndex}
                         headers={headers}
+                        uniqueValues={uniqueValues}
+                        onUpdate={updateCell}
                         imageUrl={(() => {
                             const item = (filteredData && filteredData[selectedProductIndex]) || data[selectedProductIndex];
                             if (!item) return undefined;
@@ -346,12 +349,12 @@ function Dashboard() {
                         })()}
                         onNext={() => {
                             const count = (filteredData && filteredData.length > 0) ? filteredData.length : data.length;
-                            if (selectedProductIndex < count - 1) {
+                            if (selectedProductIndex !== null && selectedProductIndex < count - 1) {
                                 setSelectedProductIndex(selectedProductIndex + 1);
                             }
                         }}
                         onPrevious={() => {
-                            if (selectedProductIndex > 0) {
+                            if (selectedProductIndex !== null && selectedProductIndex > 0) {
                                 setSelectedProductIndex(selectedProductIndex - 1);
                             }
                         }}

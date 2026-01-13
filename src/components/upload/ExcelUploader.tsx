@@ -11,6 +11,20 @@ interface ExcelUploaderProps {
 }
 
 export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
+    const [isDragging, setIsDragging] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleDragOver = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
+
+    const handleDragLeave = useCallback((e: React.DragEvent) => {
+        e.preventDefault();
+        setIsDragging(false);
+    }, []);
+
     const processFile = async (file: File) => {
         if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.csv')) {
             setError('Please upload .xlsx or .csv files only');
