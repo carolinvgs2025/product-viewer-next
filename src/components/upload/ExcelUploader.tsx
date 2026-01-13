@@ -60,11 +60,11 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
     const downloadTemplate = (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        // Row 1: Group Labels
+        // Row 1: Group Labels (Unmerged & Repeated for robustness)
         const groups = [
-            "Identification", "",
-            "Attributes", "", "", "", "", "", "", "", "",
-            "Distribution", "", "", ""
+            "Identification", "Identification", // Id, Name
+            "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", // Brand...Target Price
+            "Distribution", "Distribution", "Distribution", "Distribution" // Walmart...
         ];
 
         // Row 2: Field Headers
@@ -82,12 +82,7 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
 
         const ws = XLSX.utils.aoa_to_sheet([groups, headers, ...data]);
 
-        // Add Merges for Groups
-        ws['!merges'] = [
-            { s: { r: 0, c: 0 }, e: { r: 0, c: 1 } },   // Identification (A1:B1)
-            { s: { r: 0, c: 2 }, e: { r: 0, c: 10 } },  // Attributes (C1:K1)
-            { s: { r: 0, c: 11 }, e: { r: 0, c: 14 } }  // Distribution (L1:O1)
-        ];
+        // No merged cells needed! This is much safer for parsers.
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, "Product Data");

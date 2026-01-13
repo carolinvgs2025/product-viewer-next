@@ -9,9 +9,10 @@ import { cn } from '@/lib/utils';
 
 interface CardGridProps {
     columns?: number;
+    onCardClick?: (index: number) => void;
 }
 
-export function CardGrid({ columns = 3 }: CardGridProps) {
+export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
     const { filteredData, headers, images, updateCell, uniqueValues, filters } = useProject();
     const parentRef = useRef<HTMLDivElement>(null);
 
@@ -73,12 +74,22 @@ export function CardGrid({ columns = 3 }: CardGridProps) {
                                         imageUrl = images[fuzzyKey];
                                         break;
                                     }
+
+                                    // Auto-detect URL image links
+                                    if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) {
+                                        imageUrl = val;
+                                        break;
+                                    }
                                 }
 
                                 const CardComponent = columns === 1 ? ProductCardHorizontal : ProductCard;
 
                                 return (
-                                    <div key={item.__rowIndex ?? originalIndex} className="h-full pb-6">
+                                    <div
+                                        key={item.__rowIndex ?? originalIndex}
+                                        className="h-full pb-6 cursor-pointer"
+                                        onClick={() => onCardClick?.(originalIndex)}
+                                    >
                                         <CardComponent
                                             data={item}
                                             headers={headers}

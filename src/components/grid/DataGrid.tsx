@@ -53,6 +53,11 @@ export function DataGrid() {
                     if (key) imageUrl = images[key];
                 }
 
+                // Auto-detect URL image links
+                if (!imageUrl && typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) {
+                    imageUrl = val;
+                }
+
                 if (imageUrl) {
                     return (
                         <div className={cn(
@@ -60,11 +65,9 @@ export function DataGrid() {
                             isModified && "bg-blue-50 dark:bg-blue-900/20 ring-1 ring-blue-500/20"
                         )}>
                             <div className="relative w-12 h-12 rounded-md overflow-hidden bg-gray-100 border border-gray-200 shrink-0">
-                                <Image
+                                <img
                                     src={imageUrl}
                                     alt={val || "Product Image"}
-                                    width={100}
-                                    height={100}
                                     className="w-full h-full object-cover transition-transform group-hover:scale-110"
                                     loading="lazy"
                                 />
@@ -87,8 +90,8 @@ export function DataGrid() {
                         <span className={cn(
                             "truncate block transition-colors",
                             isModified ? "text-blue-600 dark:text-blue-400 font-medium" : "text-gray-700 dark:text-gray-300"
-                        )} title={String(val)}>
-                            {String(val)}
+                        )} title={val === null || val === undefined ? "" : String(val)}>
+                            {val === null || val === undefined ? "" : String(val)}
                         </span>
                         {isModified && (
                             <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-1 h-3 bg-blue-500 rounded-r-full" />

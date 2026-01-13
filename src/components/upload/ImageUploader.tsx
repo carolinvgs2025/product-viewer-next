@@ -9,7 +9,7 @@ import { useProject } from '@/context/ProjectContext';
 const MAX_CONCURRENT_UPLOADS = 5;
 
 export function ImageUploader() {
-    const { updateImages, images } = useProject();
+    const { updateImages, images, hasImageLinks } = useProject();
     const [isDragging, setIsDragging] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState({ total: 0, current: 0, failed: 0 });
@@ -121,11 +121,22 @@ export function ImageUploader() {
                             {uploading ? `Processing images... ${percent}%` : "Drop images here"}
                         </h3>
                         <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Fast browser-based processing (1000+)
+                            {images && Object.keys(images).length > 0
+                                ? "Or drop more to append"
+                                : "Bulk upload supported (1000+)"}
                         </p>
                     </div>
                 </div>
             </div>
+
+            {hasImageLinks && (
+                <div className="flex items-center gap-2 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg text-sm border border-blue-100 dark:border-blue-800">
+                    <CheckCircle className="w-4 h-4 shrink-0" />
+                    <p>
+                        <strong>Image links detected!</strong> We found columns with image URLs, so manual image upload is optional.
+                    </p>
+                </div>
+            )}
 
             {/* Progress Bar */}
             {uploading && (

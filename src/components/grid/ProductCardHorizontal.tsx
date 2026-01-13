@@ -65,11 +65,11 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                 {imageUrl ? (
                     <>
                         {/* Normal Image */}
-                        <Image
+                        {/* Normal Image */}
+                        <img
                             src={imageUrl}
                             alt={String(title)}
-                            fill
-                            className="object-contain p-6 transition-opacity duration-200"
+                            className="object-contain p-6 w-full h-full transition-opacity duration-200"
                             style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
                         />
 
@@ -110,6 +110,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                         placeholder={`Enter ${titleField}...`}
                         rows={3}
                         style={{ maxHeight: '84px', overflow: 'auto' }}
+                        onClick={(e) => e.stopPropagation()}
                     />
                 </div>
 
@@ -136,6 +137,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                                 <select
                                                     value={String(value)}
                                                     onChange={(e) => onUpdate(rowIndex, column, e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
                                                     className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 rounded text-sm py-1.5 px-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200 shadow-sm"
                                                 >
                                                     <option value="">Select...</option>
@@ -149,6 +151,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                                     onChange={(e) => onUpdate(rowIndex, column, e.target.value)}
                                                     className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 rounded text-sm py-1.5 px-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200 shadow-sm"
                                                     placeholder={`Edit...`}
+                                                    onClick={(e) => e.stopPropagation()}
                                                 />
                                             )}
                                         </div>
@@ -186,6 +189,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                                     onUpdate(rowIndex, header, e.target.value);
                                                 }
                                             }}
+                                            onClick={(e) => e.stopPropagation()}
                                             className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 px-3 text-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                         >
                                             <option value="" disabled>Select...</option>
@@ -207,6 +211,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                         onChange={(e) => onUpdate(rowIndex, header, e.target.value)}
                                         className="flex-1 bg-transparent border-b border-gray-200 dark:border-gray-700 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-blue-500 focus:outline-none transition-colors"
                                         placeholder="Empty"
+                                        onClick={(e) => e.stopPropagation()}
                                     />
                                 )}
                             </div>

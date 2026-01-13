@@ -24,6 +24,7 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
         const worksheet = workbook.Sheets[firstSheetName];
 
         // Parse as array of arrays first to find the header row
+        // header: 1 produces an array of arrays [ ["A", "B"], [1, 2] ]
         const jsonSheet = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
         if (jsonSheet.length === 0) {
@@ -31,72 +32,85 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
           return;
         }
 
-        // AUTO-DETECT HEADER ROW
-        // We look for a row that contains "Id" and "Name" (case-insensitive)
+        // 1. AUTO-DETECT HEADER ROW
+        // Look for a row containing "Id" and "Name" (case-insensitive)
         let headerRowIndex = 0;
         let groupRowIndex = -1;
 
-        // Scan first 10 rows maximum
         for (let i = 0; i < Math.min(jsonSheet.length, 10); i++) {
-          // Normalize: convert to string, lower case, and trim whitespace
-          const rowStr = jsonSheet[i].map(c => String(c).toLowerCase().trim());
+          // Get raw values for checking
+          const rawRow = jsonSheet[i];
+          const rowStr = rawRow.map(c => String(c).toLowerCase().trim());
 
-          // Flexible check: if row has "id" AND "name"
+          // Check for presence of "id" and "name"
           if (rowStr.includes('id') && rowStr.includes('name')) {
             headerRowIndex = i;
-            // Check if there's a row above this that might be group labels
-            if (i > 0) {
-              groupRowIndex = i - 1;
-            }
+            if (i > 0) groupRowIndex = i - 1;
             break;
           }
         }
 
-        const headers = jsonSheet[headerRowIndex].map(h => String(h || "")); // Ensure headers are strings
+        // 2. EXTRACT HEADERS & METADATA
+        const rawHeaderRow = jsonSheet[headerRowIndex];
+        const groupRow = groupRowIndex >= 0 ? jsonSheet[groupRowIndex] : null;
 
-        // Extract column groups if they exist
+        const headers: string[] = [];
         const columnMetadata: ColumnMetadata[] = [];
-        if (groupRowIndex >= 0) {
-          const groupRow = jsonSheet[groupRowIndex];
-          let currentGroup = "";
+        const validIndices: number[] = []; // Track which column indices we actually keep
 
-          headers.forEach((header, index) => {
-            // If there's a value in the group row at this index, use it
-            // Otherwise, use the previous group (merged cells behavior)
-            if (groupRow[index] && String(groupRow[index]).trim()) {
-              currentGroup = String(groupRow[index]).trim();
+        let currentGroup = "";
+
+        // Iterate through the raw header positions
+        rawHeaderRow.forEach((cellValue: any, index: number) => {
+          let headerText = cellValue ? String(cellValue).trim() : "";
+
+          // Sanitize: Replace newlines with spaces for cleaner keys
+          headerText = headerText.replace(/[\r\n]+/g, " ");
+
+          if (headerText) {
+            headers.push(headerText);
+            validIndices.push(index);
+
+            // Handle Grouping (Explicit headers only, no fill-right)
+            if (groupRow) {
+              const groupVal = groupRow[index];
+              if (groupVal && String(groupVal).trim()) {
+                currentGroup = String(groupVal).trim();
+              } else {
+                currentGroup = ""; // Reset if blank (don't inherit)
+              }
             }
 
             columnMetadata.push({
-              header,
-              group: currentGroup || "Identification"
+              header: headerText,
+              group: currentGroup || (groupRow ? "Identification" : "General")
             });
-          });
-        } else {
-          // No group row found, assign all to "General"
-          headers.forEach(header => {
-            columnMetadata.push({
-              header,
-              group: "General"
-            });
-          });
-        }
+          }
+        });
 
-        // Data starts after the header row
-        const rawRows = jsonSheet.slice(headerRowIndex + 1);
+        // 3. EXTRACT DATA
+        // Start reading data from the row after the header
+        const rawDataRows = jsonSheet.slice(headerRowIndex + 1);
 
-        const dataRows = rawRows.map((row: any) => {
+        const finalData = rawDataRows.map((rowArray: any[]) => {
           const rowObj: any = {};
-          headers.forEach((header, index) => {
-            rowObj[header] = row[index];
+          // Only map the columns that had valid headers
+          validIndices.forEach((colIndex, i) => {
+            const header = headers[i];
+            const value = rowArray[colIndex]; // Direct index mapping
+            // Store undefined/null as empty string or keep as is? 
+            // Context expects explicit values, but undefined often okay.
+            // Converting to string here might be safer for display consistency?
+            // But let's keep raw types if possible (numbers, etc).
+            rowObj[header] = value !== undefined ? value : "";
           });
           return rowObj;
         });
 
         resolve({
           headers,
-          data: dataRows,
-          rowCount: dataRows.length,
+          data: finalData,
+          rowCount: finalData.length,
           columnMetadata
         });
 

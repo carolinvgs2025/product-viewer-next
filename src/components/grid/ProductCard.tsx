@@ -81,11 +81,11 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                 {imageUrl ? (
                     <>
                         {/* Normal Image */}
-                        <Image
+                        {/* Normal Image */}
+                        <img
                             src={imageUrl}
                             alt={String(title)}
-                            fill
-                            className="object-contain p-6 transition-opacity duration-200"
+                            className="object-contain p-6 w-full h-full transition-opacity duration-200"
                             style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
                         />
 
@@ -132,6 +132,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                         placeholder={`Enter ${titleField}...`}
                         rows={3}
                         style={{ maxHeight: '72px', overflow: 'auto' }}
+                        onClick={(e) => e.stopPropagation()}
                     />
                 </div>
 
@@ -165,6 +166,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                                                 <select
                                                     value={String(value)}
                                                     onChange={(e) => onUpdate(rowIndex, column, e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
                                                     className={cn(
                                                         "w-full bg-white dark:bg-gray-800 border rounded text-[11px] py-1 px-1.5 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200",
                                                         isFieldModified
@@ -181,6 +183,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                                                 <input
                                                     value={String(value)}
                                                     onChange={(e) => onUpdate(rowIndex, column, e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
                                                     className={cn(
                                                         "w-full bg-white dark:bg-gray-800 border rounded text-[11px] py-1 px-1.5 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200",
                                                         isFieldModified
@@ -235,6 +238,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                                                     onUpdate(rowIndex, header, e.target.value);
                                                 }
                                             }}
+                                            onClick={(e) => e.stopPropagation()}
                                             className={cn(
                                                 "w-full appearance-none bg-gray-50 dark:bg-gray-800 border rounded-md py-1.5 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer transition-colors",
                                                 isFieldModified
@@ -265,6 +269,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                                                 : "border-gray-100 dark:border-gray-800 text-gray-700 dark:text-gray-300"
                                         )}
                                         placeholder="Empty"
+                                        onClick={(e) => e.stopPropagation()}
                                     />
                                 )}
                             </div>

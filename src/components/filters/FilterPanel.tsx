@@ -148,7 +148,7 @@ export function FilterPanel() {
                                         // For non-distribution columns, show regular value-based filters
                                         const values = Array.from(columnValues[column] || []).sort();
 
-                                        if (values.length === 0 || values.length > 50) {
+                                        if (values.length === 0 || values.length > 500) {
                                             return null; // Skip columns with no values or too many values
                                         }
 

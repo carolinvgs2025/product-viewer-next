@@ -7,6 +7,7 @@ import { DataGrid } from '@/components/grid/DataGrid';
 import { CardGrid } from '@/components/grid/CardGrid';
 import { FilterPanel } from '@/components/filters/FilterPanel';
 import { ActiveFilterTags } from '@/components/filters/ActiveFilterTags';
+import { ProductDetailModal } from '@/components/grid/ProductDetailModal';
 import { ProjectProvider, useProject } from '@/context/ProjectContext';
 import { DistributionChart } from '@/components/analytics/DistributionChart';
 import {
@@ -26,11 +27,12 @@ import { cn } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel-export';
 
 function Dashboard() {
-    const { data, filteredData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged } = useProject();
+    const { data, filteredData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, images } = useProject();
     const [viewMode, setViewMode] = useState<'upload' | 'grid'>('upload');
     const [isExporting, setIsExporting] = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(false);
     const [analysisColumn, setAnalysisColumn] = useState('');
+    const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
 
     useEffect(() => {
         if (columnMetadata.length > 0 && !analysisColumn) {
@@ -302,7 +304,10 @@ function Dashboard() {
                                 {viewType === 'table' ? (
                                     <DataGrid />
                                 ) : (
-                                    <CardGrid columns={cardColumns} />
+                                    <CardGrid
+                                        columns={cardColumns}
+                                        onCardClick={(index) => setSelectedProductIndex(index)}
+                                    />
                                 )}
 
                                 <p className="text-center text-xs text-gray-400 mt-8">
@@ -317,8 +322,43 @@ function Dashboard() {
                         </div>
                     </div>
                 )}
+
+                {/* Focus Mode Modal */}
+                {selectedProductIndex !== null && (
+                    <ProductDetailModal
+                        isOpen={selectedProductIndex !== null}
+                        onClose={() => setSelectedProductIndex(null)}
+                        product={filteredData[selectedProductIndex] || data[selectedProductIndex]}
+                        headers={headers}
+                        imageUrl={(() => {
+                            const item = filteredData[selectedProductIndex] || data[selectedProductIndex];
+                            if (!item) return undefined;
+
+                            // Find Image Logic (Duplicated from Grid - consider utility later)
+                            for (const key of Object.keys(item)) {
+                                const val = String(item[key]);
+                                if (images[val]) return images[val];
+                                const fuzzyKey = Object.keys(images).find(k => k === val || k.startsWith(val + '.'));
+                                if (fuzzyKey) return images[fuzzyKey];
+                                if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) return val;
+                            }
+                            return undefined;
+                        })()}
+                        onNext={() => {
+                            if (selectedProductIndex < (filteredData.length > 0 ? filteredData.length : data.length) - 1) {
+                                setSelectedProductIndex(selectedProductIndex + 1);
+                            }
+                        }}
+                        onPrevious={() => {
+                            if (selectedProductIndex > 0) {
+                                setSelectedProductIndex(selectedProductIndex - 1);
+                            }
+                        }}
+                        hasMultiple={(filteredData.length > 0 ? filteredData.length : data.length) > 1}
+                    />
+                )}
             </div>
-        </main>
+        </main >
     );
 }
 

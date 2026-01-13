@@ -12,9 +12,6 @@ interface ProjectContextType {
     originalData: any[];
     filteredData: any[];
     headers: string[];
-    // Added Search Query Types
-    searchQuery: string; 
-    setSearchQuery: (query: string) => void;
     columnMetadata: ColumnMetadata[];
     images: Record<string, string>;
     filters: FilterState;
@@ -24,11 +21,12 @@ interface ProjectContextType {
     updateImages: (newImages: Record<string, string>) => void;
     updateCell: (rowIndex: number, column: string, value: any) => void;
     bulkUpdate: (updates: { rowIndex: number, column: string, value: any }[]) => void;
-    uniqueValues: Record<string, string[]>; 
+    uniqueValues: Record<string, string[]>;
     setFilter: (column: string, values: Set<string>) => void;
     clearFilters: () => void;
     undo: () => void;
     canUndo: boolean;
+    hasImageLinks: boolean;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -44,9 +42,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const [filters, setFilters] = useState<FilterState>({});
     const [showOnlyChanged, setShowOnlyChanged] = useState(false);
     const [history, setHistory] = useState<any[][]>([]);
-    
-    // Added Search Query State
-    const [searchQuery, setSearchQuery] = useState("");
+    const [hasImageLinks, setHasImageLinks] = useState(false);
 
     const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => {
         setHeaders(result.headers);
@@ -55,12 +51,20 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             __rowIndex: index
         }));
         setData(dataWithIndices);
-        setOriginalData(JSON.parse(JSON.stringify(dataWithIndices))); 
+        setOriginalData(JSON.parse(JSON.stringify(dataWithIndices)));
         setColumnMetadata(result.columnMetadata || []);
-        setFilters({}); 
-        setSearchQuery(""); // Clear search on new data
+        setFilters({});
         setShowOnlyChanged(false);
-        setHistory([]); 
+        setHistory([]); // Clear history on new data
+
+        // Check for Image Links
+        const potentialImageHeaders = result.headers.filter(h =>
+            h.toLowerCase().includes('image') &&
+            (h.toLowerCase().includes('link') || h.toLowerCase().includes('url') || h.toLowerCase().includes('src') || h.toLowerCase() === 'image')
+        );
+
+        const foundLinks = potentialImageHeaders.length > 0;
+        setHasImageLinks(foundLinks);
     }, []);
 
     const updateImages = useCallback((newImages: Record<string, string>) => {
@@ -118,24 +122,13 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
     const clearFilters = useCallback(() => {
         setFilters({});
-        setSearchQuery(""); // Clear search when clearing all filters
     }, []);
 
     // Compute filtered data including Search logic
     const filteredData = useMemo(() => {
         let result = data;
 
-        // 1. Global Search Filter
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            result = result.filter(row => 
-                headers.some(header => 
-                    String(row[header] || "").toLowerCase().includes(query)
-                )
-            );
-        }
-
-        // 2. "Show only changed items" filter
+        // 1. "Show only changed items" filter
         if (showOnlyChanged) {
             result = result.filter((row, idx) => {
                 const originalRow = originalData[idx];
@@ -159,7 +152,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         }
 
         return result;
-    }, [data, originalData, filters, showOnlyChanged, headers, searchQuery]);
+    }, [data, originalData, filters, showOnlyChanged, headers]);
 
     const uniqueValues = useMemo(() => {
         const map: Record<string, Set<string>> = {};
@@ -185,8 +178,6 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             originalData,
             filteredData,
             headers,
-            searchQuery,      // Exposed to components
-            setSearchQuery,   // Exposed to components
             columnMetadata,
             images,
             filters,
@@ -200,7 +191,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             setFilter,
             clearFilters,
             undo,
-            canUndo: history.length > 0
+            canUndo: history.length > 0,
+            hasImageLinks
         }}>
             {children}
         </ProjectContext.Provider>
