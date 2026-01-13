@@ -328,15 +328,26 @@ function Dashboard() {
                     <ProductDetailModal
                         isOpen={selectedProductIndex !== null}
                         onClose={() => setSelectedProductIndex(null)}
-                        product={filteredData && filteredData[selectedProductIndex] ? filteredData[selectedProductIndex] : data[selectedProductIndex]}
-                        rowIndex={selectedProductIndex}
+                        onNext={() => {
+                            if (selectedProductIndex < filteredData.length - 1) {
+                                setSelectedProductIndex(selectedProductIndex + 1);
+                            }
+                        }}
+                        onPrevious={() => {
+                            if (selectedProductIndex > 0) {
+                                setSelectedProductIndex(selectedProductIndex - 1);
+                            }
+                        }}
+                        product={filteredData[selectedProductIndex]}
+                        rowIndex={filteredData[selectedProductIndex]?.__originalIndex ?? selectedProductIndex}
                         headers={headers}
                         uniqueValues={uniqueValues}
                         onUpdate={updateCell}
                         onBulkUpdate={applyToFiltered}
                         filters={filters}
+                        hasMultiple={filteredData.length > 1}
                         imageUrl={(() => {
-                            const item = (filteredData && filteredData[selectedProductIndex]) || data[selectedProductIndex];
+                            const item = filteredData[selectedProductIndex];
                             if (!item) return undefined;
 
                             // Find Image Logic (Duplicated from Grid - consider utility later)
@@ -349,18 +360,6 @@ function Dashboard() {
                             }
                             return undefined;
                         })()}
-                        onNext={() => {
-                            const count = (filteredData && filteredData.length > 0) ? filteredData.length : data.length;
-                            if (selectedProductIndex !== null && selectedProductIndex < count - 1) {
-                                setSelectedProductIndex(selectedProductIndex + 1);
-                            }
-                        }}
-                        onPrevious={() => {
-                            if (selectedProductIndex !== null && selectedProductIndex > 0) {
-                                setSelectedProductIndex(selectedProductIndex - 1);
-                            }
-                        }}
-                        hasMultiple={((filteredData && filteredData.length > 0) ? filteredData.length : data.length) > 1}
                     />
                 )}
             </div>
