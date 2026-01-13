@@ -202,7 +202,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                 )}
 
                 {/* Scrollable Fields */}
-                <div className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-3">
+                <div className="flex-1 overflow-y-auto px-6 pb-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-3 max-h-[160px]">
                     {otherHeaders.map((header) => {
                         const value = data[header] || "";
                         const originalValue = originalRow ? originalRow[header] : value;

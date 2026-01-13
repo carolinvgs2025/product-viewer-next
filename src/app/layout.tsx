@@ -15,7 +15,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Product Viewer - Dashboard",
   description: "Internal product analysis and viewer tool.",
-  robots: "noindex, nofollow",
 };
 
 export default function RootLayout({

@@ -41,7 +41,7 @@ function Dashboard() {
                 setAnalysisColumn(firstAttribute.header);
             }
         }
-    }, [columnMetadata, analysisColumn]);
+    }, [columnMetadata.length, analysisColumn]);
 
     const handleExport = () => {
         setIsExporting(true);
@@ -328,10 +328,10 @@ function Dashboard() {
                     <ProductDetailModal
                         isOpen={selectedProductIndex !== null}
                         onClose={() => setSelectedProductIndex(null)}
-                        product={filteredData[selectedProductIndex] || data[selectedProductIndex]}
+                        product={filteredData && filteredData[selectedProductIndex] ? filteredData[selectedProductIndex] : data[selectedProductIndex]}
                         headers={headers}
                         imageUrl={(() => {
-                            const item = filteredData[selectedProductIndex] || data[selectedProductIndex];
+                            const item = (filteredData && filteredData[selectedProductIndex]) || data[selectedProductIndex];
                             if (!item) return undefined;
 
                             // Find Image Logic (Duplicated from Grid - consider utility later)
@@ -345,7 +345,8 @@ function Dashboard() {
                             return undefined;
                         })()}
                         onNext={() => {
-                            if (selectedProductIndex < (filteredData.length > 0 ? filteredData.length : data.length) - 1) {
+                            const count = (filteredData && filteredData.length > 0) ? filteredData.length : data.length;
+                            if (selectedProductIndex < count - 1) {
                                 setSelectedProductIndex(selectedProductIndex + 1);
                             }
                         }}
@@ -354,7 +355,7 @@ function Dashboard() {
                                 setSelectedProductIndex(selectedProductIndex - 1);
                             }
                         }}
-                        hasMultiple={(filteredData.length > 0 ? filteredData.length : data.length) > 1}
+                        hasMultiple={((filteredData && filteredData.length > 0) ? filteredData.length : data.length) > 1}
                     />
                 )}
             </div>

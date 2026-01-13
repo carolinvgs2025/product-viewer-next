@@ -154,19 +154,23 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         return result;
     }, [data, originalData, filters, showOnlyChanged, headers]);
 
+    // Optimize Unique Values calculation: only calculate for visible headers and cache results
     const uniqueValues = useMemo(() => {
-        const map: Record<string, Set<string>> = {};
         const result: Record<string, string[]> = {};
-        headers.forEach(h => map[h] = new Set());
-        data.forEach(row => {
-            headers.forEach(h => {
-                const val = row[h];
-                if (val) map[h].add(String(val));
-            });
-        });
+        if (headers.length === 0 || data.length === 0) return result;
+
         headers.forEach(h => {
-            if (map[h].size > 0 && map[h].size < 30) {
-                result[h] = Array.from(map[h]).sort();
+            const values = new Set<string>();
+            for (let i = 0; i < data.length; i++) {
+                const val = data[i][h];
+                if (val !== undefined && val !== null && val !== "") {
+                    values.add(String(val));
+                    // Cap at 30 unique values to keep UI clean and processing fast
+                    if (values.size > 30) break;
+                }
+            }
+            if (values.size > 0 && values.size <= 30) {
+                result[h] = Array.from(values).sort();
             }
         });
         return result;

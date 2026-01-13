@@ -163,7 +163,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                 )}
 
                 {/* Scrollable Fields */}
-                <div className="flex-1 overflow-y-auto px-6 py-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-3">
+                <div className="flex-1 overflow-y-auto px-6 py-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-3 max-h-[250px]">
                     {headers.map((header) => {
                         if (header === titleField) return null; // Skip title field as it's shown above
 
