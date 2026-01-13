@@ -12,6 +12,9 @@ interface ProjectContextType {
     originalData: any[];
     filteredData: any[];
     headers: string[];
+    // Added Search Query Types
+    searchQuery: string; 
+    setSearchQuery: (query: string) => void;
     columnMetadata: ColumnMetadata[];
     images: Record<string, string>;
     filters: FilterState;
@@ -21,7 +24,7 @@ interface ProjectContextType {
     updateImages: (newImages: Record<string, string>) => void;
     updateCell: (rowIndex: number, column: string, value: any) => void;
     bulkUpdate: (updates: { rowIndex: number, column: string, value: any }[]) => void;
-    uniqueValues: Record<string, string[]>; // Map of Header -> Unique Options
+    uniqueValues: Record<string, string[]>; 
     setFilter: (column: string, values: Set<string>) => void;
     clearFilters: () => void;
     undo: () => void;
@@ -41,20 +44,23 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const [filters, setFilters] = useState<FilterState>({});
     const [showOnlyChanged, setShowOnlyChanged] = useState(false);
     const [history, setHistory] = useState<any[][]>([]);
+    
+    // Added Search Query State
+    const [searchQuery, setSearchQuery] = useState("");
 
     const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => {
         setHeaders(result.headers);
-        // Add original index to each row for reliable updates
         const dataWithIndices = result.data.map((row, index) => ({
             ...row,
             __rowIndex: index
         }));
         setData(dataWithIndices);
-        setOriginalData(JSON.parse(JSON.stringify(dataWithIndices))); // Deep copy for baseline
+        setOriginalData(JSON.parse(JSON.stringify(dataWithIndices))); 
         setColumnMetadata(result.columnMetadata || []);
-        setFilters({}); // Clear filters on new data
+        setFilters({}); 
+        setSearchQuery(""); // Clear search on new data
         setShowOnlyChanged(false);
-        setHistory([]); // Clear history on new data
+        setHistory([]); 
     }, []);
 
     const updateImages = useCallback((newImages: Record<string, string>) => {
@@ -112,23 +118,33 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
     const clearFilters = useCallback(() => {
         setFilters({});
+        setSearchQuery(""); // Clear search when clearing all filters
     }, []);
 
-    // Compute filtered data
+    // Compute filtered data including Search logic
     const filteredData = useMemo(() => {
         let result = data;
 
-        // 1. "Show only changed items" filter
+        // 1. Global Search Filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            result = result.filter(row => 
+                headers.some(header => 
+                    String(row[header] || "").toLowerCase().includes(query)
+                )
+            );
+        }
+
+        // 2. "Show only changed items" filter
         if (showOnlyChanged) {
             result = result.filter((row, idx) => {
                 const originalRow = originalData[idx];
                 if (!originalRow) return false;
-                // Compare relevant fields (exclude our internal index)
                 return headers.some(h => String(row[h]) !== String(originalRow[h]));
             });
         }
 
-        // 2. Column-specific filters
+        // 3. Column-specific filters
         if (Object.keys(filters).length > 0) {
             result = result.filter(row => {
                 return Object.entries(filters).every(([column, selectedValues]) => {
@@ -143,28 +159,23 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         }
 
         return result;
-    }, [data, originalData, filters, showOnlyChanged, headers]);
+    }, [data, originalData, filters, showOnlyChanged, headers, searchQuery]);
 
-    // Compute unique values for Smart Dropdowns
     const uniqueValues = useMemo(() => {
         const map: Record<string, Set<string>> = {};
         const result: Record<string, string[]> = {};
-
         headers.forEach(h => map[h] = new Set());
-
         data.forEach(row => {
             headers.forEach(h => {
                 const val = row[h];
                 if (val) map[h].add(String(val));
             });
         });
-
         headers.forEach(h => {
             if (map[h].size > 0 && map[h].size < 30) {
                 result[h] = Array.from(map[h]).sort();
             }
         });
-
         return result;
     }, [data, headers]);
 
@@ -174,6 +185,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             originalData,
             filteredData,
             headers,
+            searchQuery,      // Exposed to components
+            setSearchQuery,   // Exposed to components
             columnMetadata,
             images,
             filters,
