@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductDetailModalProps {
@@ -16,6 +16,8 @@ interface ProductDetailModalProps {
     onNext?: () => void;
     onPrevious?: () => void;
     onUpdate: (rowIndex: number, column: string, value: any) => void;
+    onBulkUpdate: (column: string, value: any) => void;
+    filters: any;
     hasMultiple?: boolean;
 }
 
@@ -30,8 +32,11 @@ export function ProductDetailModal({
     onNext,
     onPrevious,
     onUpdate,
+    onBulkUpdate,
+    filters,
     hasMultiple
 }: ProductDetailModalProps) {
+    const isFiltered = Object.keys(filters).length > 0;
     // Keyboard navigation
     useEffect(() => {
         if (!isOpen) return;
@@ -123,9 +128,21 @@ export function ProductDetailModal({
                         <div className="w-full md:w-1/2 flex flex-col bg-white/80 dark:bg-gray-900/90 backdrop-blur-sm">
                             {/* Header Section */}
                             <div className="p-8 pb-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-white/5">
-                                <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1 block">
-                                    {titleField}
-                                </label>
+                                <div className="flex items-center gap-2 mb-1">
+                                    <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
+                                        {titleField}
+                                    </label>
+                                    {isFiltered && (
+                                        <button
+                                            onClick={() => onBulkUpdate(titleField, title)}
+                                            className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded transition-colors"
+                                            title="Apply this name to all currently filtered items"
+                                        >
+                                            <CheckCircle2 className="w-2.5 h-2.5" />
+                                            Apply to All
+                                        </button>
+                                    )}
+                                </div>
                                 <textarea
                                     value={String(title || "")}
                                     onChange={(e) => onUpdate(rowIndex, titleField, e.target.value)}
@@ -144,10 +161,21 @@ export function ProductDetailModal({
 
                                         return (
                                             <div key={header} className="group flex flex-col gap-1 border-b border-gray-50 dark:border-gray-800/30 pb-3 last:border-0 hover:bg-gray-50/50 dark:hover:bg-white/5 p-3 rounded-xl transition-all">
-                                                <label className="text-[10px] font-bold text-blue-500 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
-                                                    <Edit2 className="w-2.5 h-2.5 opacity-40" />
-                                                    {header}
-                                                </label>
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-[10px] font-bold text-blue-500 dark:text-blue-400 uppercase tracking-widest flex items-center gap-1.5">
+                                                        <Edit2 className="w-2.5 h-2.5 opacity-40" />
+                                                        {header}
+                                                    </label>
+                                                    {isFiltered && (
+                                                        <button
+                                                            onClick={() => onBulkUpdate(header, value)}
+                                                            className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-all"
+                                                            title={`Apply this value to all currently filtered items for ${header}`}
+                                                        >
+                                                            Bulk Apply
+                                                        </button>
+                                                    )}
+                                                </div>
 
                                                 {isDropdown ? (
                                                     <div className="relative mt-1">

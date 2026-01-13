@@ -14,11 +14,13 @@ interface ProductCardProps {
     rowIndex: number;
     uniqueValues: Record<string, string[]>;
     onUpdate: (rowIndex: number, column: string, value: any) => void;
+    onBulkUpdate: (column: string, value: any) => void;
     activeFilters: FilterState;
 }
 
-export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, activeFilters }: ProductCardProps) {
+export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, onBulkUpdate, activeFilters }: ProductCardProps) {
     const { originalData } = useProject();
+    const isFiltered = Object.keys(activeFilters).length > 0;
     const [zoomStyle, setZoomStyle] = useState({ opacity: 0, x: 0, y: 0 });
     const imageRef = useRef<HTMLDivElement>(null);
 
@@ -216,14 +218,25 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                                     <label className="text-xs font-semibold text-gray-400 uppercase tracking-wider block">
                                         {header}
                                     </label>
-                                    {isFieldModified && (
-                                        <div className="flex items-center gap-1">
-                                            <span className="text-[10px] text-blue-500 font-medium italic opacity-0 group-hover/field:opacity-100 transition-opacity">
-                                                Changed
-                                            </span>
-                                            <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                                        </div>
-                                    )}
+                                    <div className="flex items-center gap-2">
+                                        {isFiltered && (
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); onBulkUpdate(header, value); }}
+                                                className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded opacity-0 group-hover/field:opacity-100 transition-all border border-blue-100 dark:border-blue-800"
+                                                title={`Apply "${value}" to all filtered items`}
+                                            >
+                                                Bulk Apply
+                                            </button>
+                                        )}
+                                        {isFieldModified && (
+                                            <div className="flex items-center gap-1">
+                                                <span className="text-[10px] text-blue-500 font-medium italic opacity-0 group-hover/field:opacity-100 transition-opacity">
+                                                    Changed
+                                                </span>
+                                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 {isDropdown ? (

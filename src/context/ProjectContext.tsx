@@ -21,6 +21,7 @@ interface ProjectContextType {
     updateImages: (newImages: Record<string, string>) => void;
     updateCell: (rowIndex: number, column: string, value: any) => void;
     bulkUpdate: (updates: { rowIndex: number, column: string, value: any }[]) => void;
+    applyToFiltered: (column: string, value: any) => void;
     uniqueValues: Record<string, string[]>;
     setFilter: (column: string, values: Set<string>) => void;
     clearFilters: () => void;
@@ -99,6 +100,44 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         });
     }, [pushToHistory]);
 
+    const applyToFiltered = useCallback((column: string, value: any) => {
+        setData(prevData => {
+            pushToHistory(prevData);
+
+            // Re-apply filter logic to identify indices to update
+            let resultIndices = prevData.map((_, i) => i);
+
+            if (showOnlyChanged) {
+                resultIndices = resultIndices.filter(idx => {
+                    const row = prevData[idx];
+                    const originalRow = originalData[idx];
+                    if (!originalRow) return false;
+                    return headers.some(h => String(row[h]) !== String(originalRow[h]));
+                });
+            }
+
+            if (Object.keys(filters).length > 0) {
+                resultIndices = resultIndices.filter(idx => {
+                    const row = prevData[idx];
+                    return Object.entries(filters).every(([col, selectedValues]) => {
+                        if (selectedValues.has('__HAS_VALUE__')) {
+                            const cellValue = row[col];
+                            return cellValue !== null && cellValue !== undefined && String(cellValue).trim() !== '';
+                        }
+                        const cellValue = String(row[col] || "");
+                        return selectedValues.has(cellValue);
+                    });
+                });
+            }
+
+            const newData = [...prevData];
+            resultIndices.forEach(idx => {
+                newData[idx] = { ...newData[idx], [column]: value };
+            });
+            return newData;
+        });
+    }, [pushToHistory, filters, showOnlyChanged, originalData, headers]);
+
     const undo = useCallback(() => {
         setHistory(prev => {
             if (prev.length === 0) return prev;
@@ -126,7 +165,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
     // Compute filtered data including Search logic
     const filteredData = useMemo(() => {
-        let result = data;
+        let result = data.map((row, idx) => ({ ...row, __originalIndex: idx }));
 
         // 1. "Show only changed items" filter
         if (showOnlyChanged) {
@@ -191,6 +230,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             updateImages,
             updateCell,
             bulkUpdate,
+            applyToFiltered,
             uniqueValues,
             setFilter,
             clearFilters,

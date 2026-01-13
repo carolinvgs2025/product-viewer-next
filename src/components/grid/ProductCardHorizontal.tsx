@@ -14,10 +14,12 @@ interface ProductCardHorizontalProps {
     rowIndex: number;
     uniqueValues: Record<string, string[]>;
     onUpdate: (rowIndex: number, column: string, value: any) => void;
+    onBulkUpdate: (column: string, value: any) => void;
     activeFilters: FilterState;
 }
 
-export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, activeFilters }: ProductCardHorizontalProps) {
+export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, onBulkUpdate, activeFilters }: ProductCardHorizontalProps) {
+    const isFiltered = Object.keys(activeFilters).length > 0;
     const [zoomStyle, setZoomStyle] = useState({ opacity: 0, x: 0, y: 0 });
     const imageRef = useRef<HTMLDivElement>(null);
 
@@ -177,6 +179,16 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                     {header}
                                 </label>
 
+                                {isFiltered && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); onBulkUpdate(header, value); }}
+                                        className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded opacity-0 group-hover/field:opacity-100 transition-all border border-blue-100 dark:border-blue-800"
+                                        title={`Apply "${value}" to all filtered items`}
+                                    >
+                                        Bulk
+                                    </button>
+                                )}
+
                                 {isDropdown ? (
                                     <div className="relative flex-1">
                                         <select
@@ -196,7 +208,6 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                             {options.map(opt => (
                                                 <option key={opt} value={opt}>{opt}</option>
                                             ))}
-                                            {/* If current value is not in options (custom value), show it */}
                                             {!options.includes(String(value)) && value && (
                                                 <option value={String(value)}>{String(value)}</option>
                                             )}
@@ -218,7 +229,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                         );
                     })}
                 </div>
-            </div>
-        </motion.div>
+            </div >
+        </motion.div >
     );
 }

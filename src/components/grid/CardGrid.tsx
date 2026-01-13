@@ -13,7 +13,7 @@ interface CardGridProps {
 }
 
 export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
-    const { filteredData, headers, images, updateCell, uniqueValues, filters } = useProject();
+    const { filteredData, headers, images, updateCell, applyToFiltered, uniqueValues, filters } = useProject();
     const parentRef = useRef<HTMLDivElement>(null);
 
     // Calculate row count based on dynamic columns
@@ -97,6 +97,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                                             rowIndex={item.__rowIndex ?? originalIndex}
                                             uniqueValues={uniqueValues}
                                             onUpdate={updateCell}
+                                            onBulkUpdate={applyToFiltered}
                                             activeFilters={filters}
                                         />
                                     </div>
