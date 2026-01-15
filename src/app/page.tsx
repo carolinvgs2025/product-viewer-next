@@ -36,7 +36,7 @@ function Dashboard() {
 
     useEffect(() => {
         if (columnMetadata.length > 0 && !analysisColumn) {
-            const firstAttribute = columnMetadata.find(m => m.group === 'Attributes');
+            const firstAttribute = columnMetadata.find(m => m.group.toLowerCase().includes('attribute'));
             if (firstAttribute) {
                 setAnalysisColumn(firstAttribute.header);
             }
@@ -166,7 +166,10 @@ function Dashboard() {
                                             className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg text-xs font-bold py-1.5 px-2 focus:ring-1 focus:ring-blue-500 transition-all outline-none animate-in slide-in-from-left-2"
                                         >
                                             {headers
-                                                .filter(h => columnMetadata.find(m => m.header === h)?.group === 'Attributes')
+                                                .filter(h => {
+                                                    const group = columnMetadata.find(m => m.header === h)?.group || "";
+                                                    return group.toLowerCase().includes('attribute');
+                                                })
                                                 .map(h => (
                                                     <option key={h} value={h}>{h}</option>
                                                 ))}
