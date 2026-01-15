@@ -277,17 +277,40 @@ export function ProductDetailModal({
                             </div>
 
                             {/* Footer / Actions */}
-                            <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center text-[10px] text-gray-400 font-bold uppercase tracking-widest">
-                                <span>ITEM {rowIndex + 1} OF {hasMultiple ? "MULTIPLE" : "1"}</span>
-
-                                <div className="flex items-center gap-2">
-                                    <span className="px-2 py-1 rounded-md bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                                        ESC TO CLOSE
+                            <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center">
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                                        ITEM {rowIndex + 1} {hasMultiple && "OF DATASET"}
                                     </span>
-                                    <span className="px-2 py-1 rounded-md bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400">
-                                        ← → NAVIGATE
-                                    </span>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[9px] font-bold uppercase">
+                                            ESC TO CLOSE
+                                        </span>
+                                        <span className="px-2 py-0.5 rounded bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[9px] font-bold uppercase">
+                                            ← → NAVIGATE
+                                        </span>
+                                    </div>
                                 </div>
+
+                                <button
+                                    onClick={() => {
+                                        if (isDeleting) {
+                                            onDelete?.(rowIndex);
+                                        } else {
+                                            setIsDeleting(true);
+                                        }
+                                    }}
+                                    onMouseLeave={() => setIsDeleting(false)}
+                                    className={cn(
+                                        "flex items-center gap-2 px-6 py-3 rounded-2xl text-xs font-bold transition-all duration-300 shadow-md uppercase tracking-wider",
+                                        isDeleting
+                                            ? "bg-red-600 text-white hover:bg-red-700 ring-4 ring-red-500/20"
+                                            : "bg-gray-200 dark:bg-white/10 text-gray-600 dark:text-gray-400 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 dark:hover:text-red-400"
+                                    )}
+                                >
+                                    <Trash2 className={cn("w-4 h-4 transition-transform", isDeleting && "scale-110")} />
+                                    {isDeleting ? "Confirm Deletion?" : "Delete Product"}
+                                </button>
                             </div>
                         </div>
                     </motion.div>
