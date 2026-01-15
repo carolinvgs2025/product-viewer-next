@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 export function FilterPanel() {
     const { columnMetadata, data, filters, setFilter, clearFilters } = useProject();
     const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const [expandedFilters, setExpandedFilters] = useState<Set<string>>(new Set());
 
     // Group columns by their category
     const groupedColumns = useMemo(() => {
@@ -48,6 +49,18 @@ export function FilterPanel() {
                 next.delete(group);
             } else {
                 next.add(group);
+            }
+            return next;
+        });
+    };
+
+    const toggleFilterExpansion = (column: string) => {
+        setExpandedFilters(prev => {
+            const next = new Set(prev);
+            if (next.has(column)) {
+                next.delete(column);
+            } else {
+                next.add(column);
             }
             return next;
         });
@@ -152,13 +165,19 @@ export function FilterPanel() {
                                             return null; // Skip columns with no values or too many values
                                         }
 
+                                        const isFilterExpanded = expandedFilters.has(column);
+                                        const displayValues = isFilterExpanded ? values : values.slice(0, 5);
+                                        const hasMore = values.length > 5;
+
                                         return (
                                             <div key={column} className="space-y-1">
-                                                <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                                                    {column}
-                                                </label>
-                                                <div className="space-y-1 max-h-32 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
-                                                    {values.map(value => (
+                                                <div className="flex items-center justify-between">
+                                                    <label className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                                        {column}
+                                                    </label>
+                                                </div>
+                                                <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+                                                    {displayValues.map(value => (
                                                         <label
                                                             key={value}
                                                             className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 p-1 rounded transition-colors"
@@ -174,6 +193,25 @@ export function FilterPanel() {
                                                             </span>
                                                         </label>
                                                     ))}
+
+                                                    {hasMore && (
+                                                        <button
+                                                            onClick={() => toggleFilterExpansion(column)}
+                                                            className="w-full text-left text-[11px] font-bold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 px-1 py-1 flex items-center gap-1 mt-1 transition-colors"
+                                                        >
+                                                            {isFilterExpanded ? (
+                                                                <>
+                                                                    <ChevronDown className="w-3 h-3 rotate-180" />
+                                                                    Show Less
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <ChevronDown className="w-3 h-3" />
+                                                                    Show All ({values.length})
+                                                                </>
+                                                            )}
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
