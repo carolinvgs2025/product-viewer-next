@@ -83,7 +83,7 @@ function Dashboard() {
             <div className="container mx-auto px-4 py-8">
                 <header className="mb-12 text-center">
                     <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent cursor-pointer" onClick={() => window.location.reload()}>
-                        Product Viewer X
+                        Product Validator
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
                         High-performance spreadsheet & image verification

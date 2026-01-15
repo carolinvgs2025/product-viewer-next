@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Product Viewer - Dashboard",
+  title: "Product Validator - Dashboard",
   description: "Internal product analysis and viewer tool.",
 };
 

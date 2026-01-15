@@ -22,7 +22,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
     const virtualizer = useVirtualizer({
         count: rowCount,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => columns === 1 ? 420 : 580, // Smaller height for horizontal cards
+        estimateSize: () => columns === 1 ? 344 : 624, // Optimized heights based on Card components
         overscan: 3,
     });
 

@@ -72,7 +72,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
             animate={{ opacity: 1, y: 0 }}
             onMouseLeave={handleMouseLeaveCard}
             className={cn(
-                "group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg border h-[540px] flex flex-col transition-all duration-300 relative",
+                "group bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg border h-[600px] flex flex-col transition-all duration-300 relative",
                 isModified
                     ? "border-blue-400 dark:border-blue-500/50 ring-1 ring-blue-500/10"
                     : "border-gray-100 dark:border-gray-800"
@@ -107,9 +107,9 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                 {isDeleting && <span className="text-[10px] font-bold whitespace-nowrap">Confirm?</span>}
             </button>
 
-            {/* Image Area - 40% height */}
+            {/* Image Area - Increased Height */}
             <div
-                className="h-[270px] relative bg-gray-50 dark:bg-gray-800 overflow-hidden cursor-crosshair border-b border-gray-100 dark:border-gray-800"
+                className="h-[320px] relative bg-gray-50 dark:bg-gray-800 overflow-hidden cursor-crosshair border-b border-gray-100 dark:border-gray-800"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={handleMouseLeave}
             >
@@ -119,13 +119,13 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                         <img
                             src={imageUrl}
                             alt={String(title)}
-                            className="object-contain p-0 w-full h-full transition-opacity duration-200"
+                            className="object-contain p-0 w-full h-full"
                             style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
                         />
 
                         {/* Zoomed Image Overlay */}
                         <div
-                            className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+                            className="absolute inset-0 pointer-events-none"
                             style={{
                                 opacity: zoomStyle.opacity,
                                 backgroundImage: `url(${imageUrl})`,
@@ -262,8 +262,8 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                     </div>
                 )}
 
-                {/* Scrollable Fields */}
-                <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-2 max-h-[160px]">
+                {/* Scrollable Fields - Increased Max Height */}
+                <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-2 max-h-[200px]">
                     {otherHeaders.map((header) => {
                         const value = data[header] || "";
                         const originalValue = originalRow ? originalRow[header] : value;

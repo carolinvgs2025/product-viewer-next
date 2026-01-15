@@ -119,17 +119,16 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
 
                 {imageUrl ? (
                     <>
-                        {/* Normal Image */}
                         <img
                             src={imageUrl}
                             alt={String(title)}
-                            className="object-contain p-6 w-full h-full transition-opacity duration-200"
+                            className="object-contain p-2 w-full h-full"
                             style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
                         />
 
                         {/* Zoomed Image Overlay */}
                         <div
-                            className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+                            className="absolute inset-0 pointer-events-none"
                             style={{
                                 opacity: zoomStyle.opacity,
                                 backgroundImage: `url(${imageUrl})`,

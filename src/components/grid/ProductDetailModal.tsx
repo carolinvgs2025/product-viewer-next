@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown, CheckCircle2, Trash2, AlertCircle } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown, CheckCircle2, Trash2, AlertCircle, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductDetailModalProps {
@@ -91,7 +91,10 @@ export function ProductDetailModal({
     // Separate Title/Name from other attributes for clean display
     const titleField = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('title')) || headers[0];
     const title = product[titleField];
-    const otherHeaders = headers.filter(h => h !== titleField);
+
+    // Identify filtered columns for "Quick Edit"
+    const filteredColumns = Object.keys(filters).filter(col => col !== titleField);
+    const otherHeaders = headers.filter(h => h !== titleField && !filteredColumns.includes(h));
 
     return (
         <AnimatePresence>
@@ -142,19 +145,20 @@ export function ProductDetailModal({
 
                         {/* Left Side: Hero Image */}
                         <div
-                            className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 relative flex items-center justify-center p-12 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 overflow-hidden cursor-crosshair"
+                            className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 relative flex items-center justify-center p-4 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 overflow-hidden cursor-crosshair"
                             onMouseMove={handleMouseMove}
                             onMouseLeave={handleMouseLeave}
                         >
                             {imageUrl ? (
                                 <>
                                     <motion.img
-                                        key={imageUrl}
+                                        layout
+                                        key={rowIndex}
                                         initial={{ opacity: 0, scale: 0.9 }}
                                         animate={{ opacity: 1, scale: 1 }}
                                         src={imageUrl}
                                         alt={String(title)}
-                                        className="w-full h-full max-h-[60vh] object-contain drop-shadow-2xl transition-opacity duration-200"
+                                        className="w-full h-full max-h-[70vh] object-contain drop-shadow-2xl"
                                         style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
                                     />
                                     {/* Zoomed Image Overlay */}
@@ -205,7 +209,74 @@ export function ProductDetailModal({
                             </div>
 
                             {/* Attributes List */}
-                            <div className="flex-1 overflow-y-auto p-8 space-y-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+                            <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+                                {/* Quick Edit Section (Filtered Fields) */}
+                                {filteredColumns.length > 0 && (
+                                    <div className="animate-in slide-in-from-top-2 duration-300">
+                                        <div className="flex items-center gap-2 mb-4 text-blue-600 dark:text-blue-400">
+                                            <Plus className="w-3.5 h-3.5" />
+                                            <span className="text-[10px] font-bold uppercase tracking-widest">Focused Verification (Quick Edit)</span>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-4 bg-blue-50/30 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100/50 dark:border-blue-900/30 shadow-sm">
+                                            {filteredColumns.map((header) => {
+                                                const value = product[header] || "";
+                                                const options = uniqueValues[header];
+                                                const isDropdown = options && options.length > 0;
+
+                                                return (
+                                                    <div key={`quick-${header}`} className="flex flex-col gap-1.5">
+                                                        <label className="text-[10px] font-bold text-blue-500/80 dark:text-blue-400/80 uppercase tracking-widest px-1">
+                                                            {header}
+                                                        </label>
+                                                        {isDropdown ? (
+                                                            <div className="relative group/input">
+                                                                <input
+                                                                    list={`datalist-modal-quick-${header}`}
+                                                                    value={localDrafts[header] ?? String(value)}
+                                                                    onChange={(e) => {
+                                                                        setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
+                                                                    }}
+                                                                    onBlur={() => handleCommit(header)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter') {
+                                                                            handleCommit(header);
+                                                                            (e.target as HTMLInputElement).blur();
+                                                                        }
+                                                                    }}
+                                                                    className="w-full bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-900/50 rounded-xl py-3 pl-4 pr-10 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                                                    placeholder={`Edit ${header}...`}
+                                                                />
+                                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500/50 pointer-events-none" />
+                                                                <datalist id={`datalist-modal-quick-${header}`}>
+                                                                    {options.map(opt => (
+                                                                        <option key={opt} value={opt} />
+                                                                    ))}
+                                                                </datalist>
+                                                            </div>
+                                                        ) : (
+                                                            <input
+                                                                value={localDrafts[header] ?? String(value)}
+                                                                onChange={(e) => {
+                                                                    setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
+                                                                }}
+                                                                onBlur={() => handleCommit(header)}
+                                                                onKeyDown={(e) => {
+                                                                    if (e.key === 'Enter') {
+                                                                        handleCommit(header);
+                                                                        (e.target as HTMLInputElement).blur();
+                                                                    }
+                                                                }}
+                                                                className="w-full bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-900/50 rounded-xl py-3 px-4 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
+                                                                placeholder={`Edit ${header}...`}
+                                                            />
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid grid-cols-1 gap-2">
                                     {otherHeaders.map((header) => {
                                         const value = product[header] || "";
