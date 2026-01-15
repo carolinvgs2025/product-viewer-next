@@ -28,6 +28,8 @@ interface ProjectContextType {
     undo: () => void;
     canUndo: boolean;
     hasImageLinks: boolean;
+    searchQuery: string;
+    setSearchQuery: (query: string) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -44,6 +46,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const [showOnlyChanged, setShowOnlyChanged] = useState(false);
     const [history, setHistory] = useState<any[][]>([]);
     const [hasImageLinks, setHasImageLinks] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
 
     const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => {
         setHeaders(result.headers);
@@ -56,6 +59,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         setColumnMetadata(result.columnMetadata || []);
         setFilters({});
         setShowOnlyChanged(false);
+        setSearchQuery("");
         setHistory([]); // Clear history on new data
 
         // Check for Image Links
@@ -183,6 +187,46 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             });
         }
 
+        // 2. Global Search filter (Support column:value syntax)
+        if (searchQuery.trim()) {
+            const query = searchQuery.trim();
+            const colonIndex = query.indexOf(':');
+
+            if (colonIndex > 0) {
+                const targetHeaderPrefix = query.slice(0, colonIndex).toLowerCase().trim();
+                const searchValue = query.slice(colonIndex + 1).toLowerCase().trim();
+
+                // Find a header that matches the prefix
+                const activeHeader = headers.find(h => h.toLowerCase() === targetHeaderPrefix);
+
+                if (activeHeader) {
+                    // Targeted column search
+                    result = result.filter(row => {
+                        const val = String(row[activeHeader] || "").toLowerCase();
+                        return val.includes(searchValue);
+                    });
+                } else {
+                    // Fallback to global if header not found
+                    const lowerQuery = query.toLowerCase();
+                    result = result.filter(row => {
+                        return headers.some(h => {
+                            const val = String(row[h] || "").toLowerCase();
+                            return val.includes(lowerQuery);
+                        });
+                    });
+                }
+            } else {
+                // Standard global search
+                const lowerQuery = query.toLowerCase();
+                result = result.filter(row => {
+                    return headers.some(h => {
+                        const val = String(row[h] || "").toLowerCase();
+                        return val.includes(lowerQuery);
+                    });
+                });
+            }
+        }
+
         // 3. Column-specific filters
         if (Object.keys(filters).length > 0) {
             result = result.filter(row => {
@@ -198,7 +242,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         }
 
         return result;
-    }, [data, originalData, filters, showOnlyChanged, headers]);
+    }, [data, originalData, filters, showOnlyChanged, headers, searchQuery]);
 
     // Optimize Unique Values calculation: only calculate for visible headers and cache results
     const uniqueValues = useMemo(() => {
@@ -243,7 +287,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             clearFilters,
             undo,
             canUndo: history.length > 0,
-            hasImageLinks
+            hasImageLinks,
+            searchQuery,
+            setSearchQuery
         }}>
             {children}
         </ProjectContext.Provider>

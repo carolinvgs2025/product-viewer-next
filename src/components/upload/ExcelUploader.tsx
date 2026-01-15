@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, Fragment } from 'react';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, Download, Layers } from 'lucide-react';
-import { parseExcelFile, ParseResult, getExcelSheetNames } from '@/lib/excel-parser';
+import { parseExcelFile, ParseResult } from '@/lib/excel-parser';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
@@ -26,8 +26,8 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
     }, []);
 
     const processFile = async (file: File) => {
-        if (!file.name.endsWith('.xlsx') && !file.name.endsWith('.csv')) {
-            setError('Please upload .xlsx or .csv files only');
+        if (!file.name.endsWith('.xlsx')) {
+            setError('Please upload .xlsx files only');
             return;
         }
 
@@ -57,44 +57,11 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
         if (file) processFile(file);
     };
 
-    const downloadTemplate = (e: React.MouseEvent) => {
-        e.stopPropagation();
-
-        // Row 1: Group Labels (Unmerged & Repeated for robustness)
-        const groups = [
-            "Identification", "Identification", // Id, Name
-            "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", "Attributes", // Brand...Target Price
-            "Distribution", "Distribution", "Distribution", "Distribution" // Walmart...
-        ];
-
-        // Row 2: Field Headers
-        const headers = [
-            "Id", "Name",
-            "Brand", "Form", "Scent", "Package Count", "Seasonal", "Primary Benefit", "Natural/Conventional", "Continuous Vs Manual Fragrance", "Store Location",
-            "Walmart Price", "Grocery/Amazon", "DIY", "Target Price"
-        ];
-
-        // Sample Data
-        const data = [
-            ["3", "Febreze Fabric Refresher", "Febreze", "Fabric Refresher", "Fresh/Clean", "Stand Alone Air", "Not Seasonal", "Odor Control", "Conventional", "Manual", "Air Freshener", "5.99", "5.99", "5.99", "5.99"],
-            ["4", "Febreze Air Effects", "Febreze", "Aerosol", "Floral", "Stand Alone Air", "Not Seasonal", "Odor Control", "Conventional", "Manual", "Air Freshener", "5.97", "5.97", "5.97", "5.97"],
-        ];
-
-        const ws = XLSX.utils.aoa_to_sheet([groups, headers, ...data]);
-
-        // No merged cells needed! This is much safer for parsers.
-
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Product Data");
-
-        XLSX.writeFile(wb, "product_viewer_template.xlsx");
-    };
-
     return (
         <div className="relative group">
             <div
                 className={cn(
-                    "relative rounded-xl border-2 border-dashed transition-all duration-300 p-12 text-center",
+                    "relative rounded-xl border-2 border-dashed transition-all duration-300 p-8 md:p-12 text-center",
                     isDragging
                         ? "border-blue-500 bg-blue-50/10 scale-[1.01] shadow-lg"
                         : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20",
@@ -106,12 +73,12 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
             >
                 <input
                     type="file"
-                    accept=".xlsx,.csv"
+                    accept=".xlsx"
                     className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                     onChange={handleFileInput}
                 />
 
-                <div className="flex flex-col items-center gap-4 pointer-events-none">
+                <div className="flex flex-col items-center gap-6 pointer-events-none">
                     <div className={cn(
                         "p-4 rounded-full bg-gray-100 dark:bg-white/5 transition-transform duration-300",
                         isDragging && "scale-110"
@@ -123,13 +90,51 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
                         )}
                     </div>
 
-                    <div className="space-y-2">
-                        <h3 className="text-lg font-semibold dark:text-white">
-                            {isProcessing ? "Processing Spreadsheet..." : "Drop your Excel file here"}
-                        </h3>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                            Supports .xlsx or .csv (Row 1 = Headers)
-                        </p>
+                    <div className="space-y-4 w-full max-w-sm">
+                        <div className="space-y-2">
+                            <h3 className="text-lg font-semibold dark:text-white">
+                                {isProcessing ? "Processing Spreadsheet..." : "Drop your Excel file here"}
+                            </h3>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wider">
+                                Supports .xlsx files only (First sheet only)
+                            </p>
+                        </div>
+
+                        {/* Visual Spreadsheet Mockup */}
+                        <div className="bg-gray-50 dark:bg-black/40 rounded-lg p-3 border border-gray-100 dark:border-white/10 shadow-inner">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Layers className="w-3 h-3 text-gray-400" />
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Expected Format (Excel)</span>
+                            </div>
+                            <div className="grid grid-cols-5 gap-1">
+                                {/* Excel Headers Indicators */}
+                                <div className="text-[8px] text-gray-400 font-medium self-center px-1 italic">Row 1</div>
+                                <div className="px-1 invisible">.</div>
+                                <div className="px-1 invisible">.</div>
+                                <div className="bg-blue-500/10 border border-blue-500/20 rounded py-0.5 text-[7px] font-bold text-blue-500 uppercase tracking-widest text-center truncate">Attr...</div>
+                                <div className="bg-blue-500/10 border border-blue-500/20 rounded py-0.5 text-[7px] font-bold text-blue-500 uppercase tracking-widest text-center truncate">Attr...</div>
+
+                                <div className="text-[8px] text-gray-400 font-medium self-center px-1 italic">Row 2</div>
+
+                                {/* Field Headers Row */}
+                                {['ID', 'Name', 'Brand', 'Scent'].map((h) => (
+                                    <div key={h} className="bg-white dark:bg-gray-800 p-1.5 rounded border border-gray-100 dark:border-white/5 text-[9px] font-bold text-gray-400 dark:text-gray-500 truncate">
+                                        {h}
+                                    </div>
+                                ))}
+
+                                {/* Pulse Data Rows */}
+                                {[1, 2].map((i) => (
+                                    <Fragment key={i}>
+                                        <div className="text-[8px] text-gray-400/30 font-medium self-center px-1 italic">...</div>
+                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse" />
+                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-80" />
+                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-60" />
+                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-40" />
+                                    </Fragment>
+                                ))}
+                            </div>
+                        </div>
                     </div>
 
                     {error && (
@@ -140,15 +145,6 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
                     )}
                 </div>
             </div>
-
-            {/* Template Download Button (Outside Overlay) */}
-            <button
-                onClick={downloadTemplate}
-                className="absolute top-4 right-4 z-20 hidden group-hover:flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 rounded-lg transition-colors"
-            >
-                <Download className="w-3 h-3" />
-                Download Example
-            </button>
         </div>
     );
 }

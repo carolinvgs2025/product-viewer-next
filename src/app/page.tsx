@@ -110,7 +110,10 @@ function Dashboard() {
                             </div>
 
                             <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 bg-opacity-50">
-                                <h2 className="text-xl font-semibold mb-6">2. Upload Product Images</h2>
+                                <h2 className="text-xl font-semibold mb-1">2. Upload Product Images</h2>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">
+                                    Only required if no image link column is provided in step 1.
+                                </p>
                                 <ImageUploader />
                             </div>
                         </div>

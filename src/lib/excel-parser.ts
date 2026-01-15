@@ -12,24 +12,7 @@ export interface ParseResult {
   columnMetadata: ColumnMetadata[];
 }
 
-export const getExcelSheetNames = async (file: File): Promise<string[]> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = e.target?.result;
-        const workbook = read(data, { type: 'binary' });
-        resolve(workbook.SheetNames);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.onerror = (error) => reject(error);
-    reader.readAsBinaryString(file);
-  });
-};
-
-export const parseExcelFile = async (file: File, sheetName?: string): Promise<ParseResult> => {
+export const parseExcelFile = async (file: File): Promise<ParseResult> => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
 
@@ -38,11 +21,12 @@ export const parseExcelFile = async (file: File, sheetName?: string): Promise<Pa
         const data = e.target?.result;
         const workbook = read(data, { type: 'binary' });
 
-        const targetSheetName = sheetName || workbook.SheetNames[0];
+        // Explicitly lock to the first sheet as per user requirement
+        const targetSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[targetSheetName];
 
         if (!worksheet) {
-          reject(new Error(`Sheet "${targetSheetName}" not found.`));
+          reject(new Error(`No sheets found in the Excel file.`));
           return;
         }
 

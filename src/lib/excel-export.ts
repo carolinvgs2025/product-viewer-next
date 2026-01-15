@@ -12,7 +12,10 @@ export const exportToExcel = (data: any[], headers: string[], columnMetadata: Co
         // Group row
         const groupRow = headers.map(h => {
             const meta = columnMetadata.find(m => m.header === h);
-            return meta?.group || '';
+            const group = meta?.group || '';
+            // Hide default groups in export
+            if (group === 'Identification' || group === 'General' || group === 'Other') return '';
+            return group;
         });
         worksheetData.push(groupRow);
     }
@@ -46,37 +49,8 @@ export const exportToExcel = (data: any[], headers: string[], columnMetadata: Co
         worksheet['!merges'] = merges;
     }
 
-    // 4. Create Analytics worksheet
-    const analyticsData: any[][] = [['Attributes Analysis Summary'], ['Value', 'Count', '% of Total']];
-
-    headers.forEach(header => {
-        const meta = columnMetadata.find(m => m.header === header);
-        // ONLY include Attributes group
-        if (meta?.group !== 'Attributes') return;
-
-        const counts: Record<string, number> = {};
-        data.forEach(row => {
-            const val = String(row[header] || '(Empty)');
-            counts[val] = (counts[val] || 0) + 1;
-        });
-
-        const sortedValues = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-
-        // Add a header for the column
-        analyticsData.push(['']); // Spacer
-        analyticsData.push([header.toUpperCase()]);
-
-        sortedValues.forEach(([val, count]) => {
-            const percentage = ((count / data.length) * 100).toFixed(1) + '%';
-            analyticsData.push([val, count, percentage]);
-        });
-    });
-
-    const analyticsWorksheet = utils.aoa_to_sheet(analyticsData);
-
-    // 5. Create workbook and save
+    // 4. Create workbook and save
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, worksheet, 'Data');
-    utils.book_append_sheet(workbook, analyticsWorksheet, 'Analytics Summary');
     writeFile(workbook, fileName);
 };
