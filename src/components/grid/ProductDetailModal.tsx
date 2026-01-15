@@ -39,11 +39,24 @@ export function ProductDetailModal({
     const isFiltered = Object.keys(filters).length > 0;
     const [isDeleting, setIsDeleting] = useState(false);
     const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
+    const [zoomStyle, setZoomStyle] = useState({ opacity: 0, x: 0, y: 0 });
+
+    const handleMouseMove = (e: React.MouseEvent) => {
+        const { left, top, width, height } = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        const x = ((e.clientX - left) / width) * 100;
+        const y = ((e.clientY - top) / height) * 100;
+        setZoomStyle({ opacity: 1, x, y });
+    };
+
+    const handleMouseLeave = () => {
+        setZoomStyle(prev => ({ ...prev, opacity: 0 }));
+    };
 
     // Reset state when product changes
     useEffect(() => {
         setIsDeleting(false);
         setLocalDrafts({});
+        setZoomStyle({ opacity: 0, x: 0, y: 0 });
     }, [rowIndex]);
 
     // Keyboard navigation
@@ -128,16 +141,34 @@ export function ProductDetailModal({
                         )}
 
                         {/* Left Side: Hero Image */}
-                        <div className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 relative flex items-center justify-center p-12 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 overflow-hidden">
+                        <div
+                            className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 relative flex items-center justify-center p-12 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 overflow-hidden cursor-crosshair"
+                            onMouseMove={handleMouseMove}
+                            onMouseLeave={handleMouseLeave}
+                        >
                             {imageUrl ? (
-                                <motion.img
-                                    key={imageUrl}
-                                    initial={{ opacity: 0, scale: 0.9 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    src={imageUrl}
-                                    alt={String(title)}
-                                    className="w-full h-full max-h-[60vh] object-contain drop-shadow-2xl"
-                                />
+                                <>
+                                    <motion.img
+                                        key={imageUrl}
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        src={imageUrl}
+                                        alt={String(title)}
+                                        className="w-full h-full max-h-[60vh] object-contain drop-shadow-2xl transition-opacity duration-200"
+                                        style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
+                                    />
+                                    {/* Zoomed Image Overlay */}
+                                    <div
+                                        className="absolute inset-0 pointer-events-none transition-opacity duration-200"
+                                        style={{
+                                            opacity: zoomStyle.opacity,
+                                            backgroundImage: `url(${imageUrl})`,
+                                            backgroundPosition: `${zoomStyle.x}% ${zoomStyle.y}%`,
+                                            backgroundSize: '200%',
+                                            backgroundRepeat: 'no-repeat'
+                                        }}
+                                    />
+                                </>
                             ) : (
                                 <div className="text-gray-300 flex flex-col items-center gap-4">
                                     <span className="text-6xl">📷</span>
