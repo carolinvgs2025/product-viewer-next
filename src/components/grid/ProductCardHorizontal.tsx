@@ -65,6 +65,10 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
     const titleField = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('title')) || headers[0];
     const title = data[titleField];
 
+    // Find the "ID" field for the badge
+    const idField = headers.find(h => h.toLowerCase() === 'id' || h.toLowerCase() === 'id ') || headers[0];
+    const idValue = data[idField];
+
     return (
         <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -107,9 +111,9 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
             >
                 {/* ID Overlay - Top Left */}
                 <div className="absolute top-0 left-0 z-10 p-2">
-                    <div className="bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-br-lg rounded-tl-lg shadow-lg border border-white/20 flex items-center gap-1.5">
-                        <span className="text-[10px] font-bold text-white/90">{headers[0]}:</span>
-                        <span className="text-[10px] font-semibold">{String(data[headers[0]])}</span>
+                    <div className="bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-br-lg rounded-tl-lg shadow-lg border border-white/20 flex items-center gap-1.5 uppercase">
+                        <span className="text-[10px] font-bold text-white/90">{idField}:</span>
+                        <span className="text-[10px] font-semibold">{String(idValue)}</span>
                     </div>
                 </div>
 

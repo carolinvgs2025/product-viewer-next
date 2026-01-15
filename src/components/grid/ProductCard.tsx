@@ -62,6 +62,10 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
 
     const otherHeaders = headers.filter(h => h !== titleField);
 
+    // Find the "ID" field for the badge
+    const idField = headers.find(h => h.toLowerCase() === 'id' || h.toLowerCase() === 'id ') || null;
+    const idValue = idField ? data[idField] : `#${rowIndex + 1}`;
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -76,8 +80,8 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
         >
             {/* ID / Index Badge */}
             <div className="absolute top-4 left-4 z-20">
-                <div className="bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[9px] font-bold border border-white/10">
-                    #{rowIndex + 1}
+                <div className="bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[9px] font-bold border border-white/10 uppercase">
+                    {idValue}
                 </div>
             </div>
 
