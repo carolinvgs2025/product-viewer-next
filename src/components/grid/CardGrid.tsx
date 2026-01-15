@@ -13,7 +13,7 @@ interface CardGridProps {
 }
 
 export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
-    const { filteredData, headers, images, updateCell, applyToFiltered, uniqueValues, filters } = useProject();
+    const { filteredData, headers, images, updateCell, deleteRow, uniqueValues, filters } = useProject();
     const parentRef = useRef<HTMLDivElement>(null);
 
     // Calculate row count based on dynamic columns
@@ -22,7 +22,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
     const virtualizer = useVirtualizer({
         count: rowCount,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => columns === 1 ? 420 : 620, // Smaller height for horizontal cards
+        estimateSize: () => columns === 1 ? 420 : 580, // Smaller height for horizontal cards
         overscan: 3,
     });
 
@@ -97,7 +97,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                                             rowIndex={item.__originalIndex ?? originalIndex}
                                             uniqueValues={uniqueValues}
                                             onUpdate={updateCell}
-                                            onBulkUpdate={applyToFiltered}
+                                            onDelete={deleteRow}
                                             activeFilters={filters}
                                         />
                                     </div>

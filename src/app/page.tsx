@@ -27,7 +27,7 @@ import { cn } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel-export';
 
 function Dashboard() {
-    const { data, filteredData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, images, uniqueValues, updateCell, applyToFiltered, filters } = useProject();
+    const { data, filteredData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, images, uniqueValues, updateCell, deleteRow, filters } = useProject();
     const [viewMode, setViewMode] = useState<'upload' | 'grid'>('upload');
     const [isExporting, setIsExporting] = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(false);
@@ -343,7 +343,10 @@ function Dashboard() {
                         headers={headers}
                         uniqueValues={uniqueValues}
                         onUpdate={updateCell}
-                        onBulkUpdate={applyToFiltered}
+                        onDelete={(idx) => {
+                            deleteRow(idx);
+                            setSelectedProductIndex(null);
+                        }}
                         filters={filters}
                         hasMultiple={filteredData.length > 1}
                         imageUrl={(() => {

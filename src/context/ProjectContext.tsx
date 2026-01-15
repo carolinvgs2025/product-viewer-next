@@ -21,7 +21,7 @@ interface ProjectContextType {
     updateImages: (newImages: Record<string, string>) => void;
     updateCell: (rowIndex: number, column: string, value: any) => void;
     bulkUpdate: (updates: { rowIndex: number, column: string, value: any }[]) => void;
-    applyToFiltered: (column: string, value: any) => void;
+    deleteRow: (rowIndex: number) => void;
     uniqueValues: Record<string, string[]>;
     setFilter: (column: string, values: Set<string>) => void;
     clearFilters: () => void;
@@ -97,6 +97,13 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
                 }
             });
             return newData;
+        });
+    }, [pushToHistory]);
+
+    const deleteRow = useCallback((rowIndex: number) => {
+        setData(prevData => {
+            pushToHistory(prevData);
+            return prevData.filter((_, i) => i !== rowIndex);
         });
     }, [pushToHistory]);
 
@@ -204,11 +211,11 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
                 const val = data[i][h];
                 if (val !== undefined && val !== null && val !== "") {
                     values.add(String(val));
-                    // Cap at 30 unique values to keep UI clean and processing fast
-                    if (values.size > 30) break;
+                    // Cap at 200 unique values to keep suggestions relevant
+                    if (values.size > 200) break;
                 }
             }
-            if (values.size > 0 && values.size <= 30) {
+            if (values.size > 0) {
                 result[h] = Array.from(values).sort();
             }
         });
@@ -230,7 +237,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             updateImages,
             updateCell,
             bulkUpdate,
-            applyToFiltered,
+            deleteRow,
             uniqueValues,
             setFilter,
             clearFilters,

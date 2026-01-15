@@ -4,8 +4,8 @@ import React, { useState, useRef } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { ChevronDown, Plus } from 'lucide-react';
-import { FilterState } from '@/context/ProjectContext';
+import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { FilterState, useProject } from '@/context/ProjectContext';
 
 interface ProductCardHorizontalProps {
     data: any;
@@ -14,12 +14,13 @@ interface ProductCardHorizontalProps {
     rowIndex: number;
     uniqueValues: Record<string, string[]>;
     onUpdate: (rowIndex: number, column: string, value: any) => void;
-    onBulkUpdate: (column: string, value: any) => void;
+    onDelete?: (rowIndex: number) => void;
     activeFilters: FilterState;
 }
 
-export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, onBulkUpdate, activeFilters }: ProductCardHorizontalProps) {
+export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, onDelete, activeFilters }: ProductCardHorizontalProps) {
     const isFiltered = Object.keys(activeFilters).length > 0;
+    const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
     const [zoomStyle, setZoomStyle] = useState({ opacity: 0, x: 0, y: 0 });
     const imageRef = useRef<HTMLDivElement>(null);
 
@@ -37,18 +38,66 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
         setZoomStyle(prev => ({ ...prev, opacity: 0 }));
     };
 
+    const { originalData } = useProject();
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    // Reset delete state when mouse leaves card to avoid stuck state
+    const handleMouseLeaveCard = () => {
+        setIsDeleting(false);
+    };
+
+    const handleCommit = (column: string) => {
+        const draftVal = localDrafts[column];
+        if (draftVal !== undefined) {
+            onUpdate(rowIndex, column, draftVal);
+            setLocalDrafts(prev => {
+                const next = { ...prev };
+                delete next[column];
+                return next;
+            });
+        }
+    };
+
+    const originalRow = originalData[rowIndex];
+    const isModified = originalRow && headers.some(h => String(data[h]) !== String(originalRow[h]));
+
     // Find the "Name" or "Title" to display prominently
     const titleField = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('title')) || headers[0];
     const title = data[titleField];
 
-    const otherHeaders = headers.filter(h => h !== titleField);
-
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-800 flex flex-row group hover:shadow-2xl transition-all duration-300 h-[400px]"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onMouseLeave={handleMouseLeaveCard}
+            className={cn(
+                "bg-white dark:bg-gray-900 rounded-xl overflow-hidden shadow-lg border h-[320px] flex group hover:shadow-2xl transition-all duration-300 relative",
+                isModified
+                    ? "border-blue-400 dark:border-blue-500/50 ring-1 ring-blue-500/20"
+                    : "border-gray-100 dark:border-gray-800"
+            )}
         >
+            {/* Delete Button - Top Right Overlay */}
+            <button
+                onClick={(e) => {
+                    e.stopPropagation();
+                    if (isDeleting) {
+                        onDelete?.(rowIndex);
+                    } else {
+                        setIsDeleting(true);
+                    }
+                }}
+                className={cn(
+                    "absolute top-3 right-3 z-30 p-2 rounded-xl border transition-all duration-300 group/del shadow-sm flex items-center gap-1.5 backdrop-blur-md",
+                    isDeleting
+                        ? "bg-red-600 border-red-500 text-white w-auto px-3"
+                        : "bg-white/80 dark:bg-black/60 border-gray-200 dark:border-white/10 text-gray-400 hover:text-red-500 hover:border-red-200 dark:hover:border-red-900/50 w-10 overflow-hidden"
+                )}
+                title={isDeleting ? "Click again to confirm" : "Delete Product"}
+            >
+                <Trash2 className={cn("w-4 h-4 shrink-0 transition-transform", isDeleting && "scale-110")} />
+                {isDeleting && <span className="text-[10px] font-bold whitespace-nowrap">Confirm?</span>}
+            </button>
             {/* Left 50%: Image Area */}
             <div
                 ref={imageRef}
@@ -66,7 +115,6 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
 
                 {imageUrl ? (
                     <>
-                        {/* Normal Image */}
                         {/* Normal Image */}
                         <img
                             src={imageUrl}
@@ -95,7 +143,6 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                 )}
             </div>
 
-
             {/* Right 50%: Editable Attributes */}
             <div className="w-1/2 flex flex-col">
                 {/* Title / Header Fixed - Enhanced Display */}
@@ -104,9 +151,17 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                         {titleField}
                     </label>
                     <textarea
-                        value={String(title || "")}
+                        value={localDrafts[titleField] ?? String(title || "")}
                         onChange={(e) => {
-                            onUpdate(rowIndex, titleField, e.target.value);
+                            setLocalDrafts(prev => ({ ...prev, [titleField]: e.target.value }));
+                        }}
+                        onBlur={() => handleCommit(titleField)}
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                                e.preventDefault();
+                                handleCommit(titleField);
+                                (e.target as HTMLTextAreaElement).blur();
+                            }
                         }}
                         className="w-full text-lg font-bold bg-transparent border-2 border-transparent hover:border-gray-200 focus:border-blue-500 focus:outline-none transition-colors text-gray-900 dark:text-gray-100 resize-none rounded-md px-2 py-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
                         placeholder={`Enter ${titleField}...`}
@@ -136,21 +191,44 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                                 {column}
                                             </label>
                                             {isDropdown ? (
-                                                <select
-                                                    value={String(value)}
-                                                    onChange={(e) => onUpdate(rowIndex, column, e.target.value)}
-                                                    onClick={(e) => e.stopPropagation()}
-                                                    className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 rounded text-sm py-1.5 px-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200 shadow-sm"
-                                                >
-                                                    <option value="">Select...</option>
-                                                    {options.map(opt => (
-                                                        <option key={opt} value={opt}>{opt}</option>
-                                                    ))}
-                                                </select>
+                                                <div className="relative group/input">
+                                                    <input
+                                                        list={`datalist-${rowIndex}-${column}`}
+                                                        value={localDrafts[column] ?? String(value)}
+                                                        onChange={(e) => {
+                                                            setLocalDrafts(prev => ({ ...prev, [column]: e.target.value }));
+                                                        }}
+                                                        onBlur={() => handleCommit(column)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter') {
+                                                                handleCommit(column);
+                                                                (e.target as HTMLInputElement).blur();
+                                                            }
+                                                        }}
+                                                        className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 rounded text-sm py-1.5 pl-2 pr-8 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200 shadow-sm"
+                                                        placeholder={`Edit ${column}...`}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    />
+                                                    <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none opacity-0 group-hover/input:opacity-100 transition-opacity" />
+                                                    <datalist id={`datalist-${rowIndex}-${column}`}>
+                                                        {options.map(opt => (
+                                                            <option key={opt} value={opt} />
+                                                        ))}
+                                                    </datalist>
+                                                </div>
                                             ) : (
                                                 <input
-                                                    value={String(value)}
-                                                    onChange={(e) => onUpdate(rowIndex, column, e.target.value)}
+                                                    value={localDrafts[column] ?? String(value)}
+                                                    onChange={(e) => {
+                                                        setLocalDrafts(prev => ({ ...prev, [column]: e.target.value }));
+                                                    }}
+                                                    onBlur={() => handleCommit(column)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === 'Enter') {
+                                                            handleCommit(column);
+                                                            (e.target as HTMLInputElement).blur();
+                                                        }
+                                                    }}
                                                     className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700 rounded text-sm py-1.5 px-2 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200 shadow-sm"
                                                     placeholder={`Edit...`}
                                                     onClick={(e) => e.stopPropagation()}
@@ -167,7 +245,7 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                 {/* Scrollable Fields */}
                 <div className="flex-1 overflow-y-auto px-6 py-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-3 max-h-[250px]">
                     {headers.map((header) => {
-                        if (header === titleField) return null; // Skip title field as it's shown above
+                        if (header === titleField) return null;
 
                         const value = data[header] || "";
                         const options = uniqueValues[header];
@@ -179,57 +257,57 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                                     {header}
                                 </label>
 
-                                {isFiltered && (
-                                    <button
-                                        onClick={(e) => { e.stopPropagation(); onBulkUpdate(header, value); }}
-                                        className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded opacity-0 group-hover/field:opacity-100 transition-all border border-blue-100 dark:border-blue-800"
-                                        title={`Apply "${value}" to all filtered items`}
-                                    >
-                                        Bulk
-                                    </button>
-                                )}
-
                                 {isDropdown ? (
-                                    <div className="relative flex-1">
-                                        <select
-                                            value={String(value)}
+                                    <div className="relative flex-1 group/input">
+                                        <input
+                                            list={`datalist-scroll-${rowIndex}-${header}`}
+                                            value={localDrafts[header] ?? String(value)}
                                             onChange={(e) => {
-                                                if (e.target.value === '__add_new__') {
-                                                    const newVal = prompt(`Enter new value for ${header}:`);
-                                                    if (newVal) onUpdate(rowIndex, header, newVal);
-                                                } else {
-                                                    onUpdate(rowIndex, header, e.target.value);
+                                                setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
+                                            }}
+                                            onBlur={() => handleCommit(header)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleCommit(header);
+                                                    (e.target as HTMLInputElement).blur();
                                                 }
                                             }}
                                             onClick={(e) => e.stopPropagation()}
-                                            className="w-full appearance-none bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 px-3 text-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-                                        >
-                                            <option value="" disabled>Select...</option>
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 pl-3 pr-9 text-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                            placeholder={`Edit ${header}...`}
+                                        />
+                                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none opacity-0 group-hover/input:opacity-100 transition-opacity" />
+                                        <datalist id={`datalist-scroll-${rowIndex}-${header}`}>
                                             {options.map(opt => (
-                                                <option key={opt} value={opt}>{opt}</option>
+                                                <option key={opt} value={opt} />
                                             ))}
-                                            {!options.includes(String(value)) && value && (
-                                                <option value={String(value)}>{String(value)}</option>
-                                            )}
-                                            <hr />
-                                            <option value="__add_new__" className="text-blue-600 font-semibold">+ Add New...</option>
-                                        </select>
-                                        <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                        </datalist>
                                     </div>
                                 ) : (
-                                    <input
-                                        value={String(value)}
-                                        onChange={(e) => onUpdate(rowIndex, header, e.target.value)}
-                                        className="flex-1 bg-transparent border-b border-gray-200 dark:border-gray-700 py-1.5 text-sm text-gray-700 dark:text-gray-300 focus:border-blue-500 focus:outline-none transition-colors"
-                                        placeholder="Empty"
-                                        onClick={(e) => e.stopPropagation()}
-                                    />
+                                    <div className="relative flex-1">
+                                        <input
+                                            value={localDrafts[header] ?? String(value)}
+                                            onChange={(e) => {
+                                                setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
+                                            }}
+                                            onBlur={() => handleCommit(header)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') {
+                                                    handleCommit(header);
+                                                    (e.target as HTMLInputElement).blur();
+                                                }
+                                            }}
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="w-full bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md py-1.5 px-3 text-sm text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                                            placeholder={`Edit ${header}...`}
+                                        />
+                                    </div>
                                 )}
                             </div>
                         );
                     })}
                 </div>
-            </div >
-        </motion.div >
+            </div>
+        </motion.div>
     );
 }

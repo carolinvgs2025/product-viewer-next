@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown, CheckCircle2, Trash2, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface ProductDetailModalProps {
@@ -16,7 +16,7 @@ interface ProductDetailModalProps {
     onNext?: () => void;
     onPrevious?: () => void;
     onUpdate: (rowIndex: number, column: string, value: any) => void;
-    onBulkUpdate: (column: string, value: any) => void;
+    onDelete?: (rowIndex: number) => void;
     filters: any;
     hasMultiple?: boolean;
 }
@@ -32,11 +32,20 @@ export function ProductDetailModal({
     onNext,
     onPrevious,
     onUpdate,
-    onBulkUpdate,
+    onDelete,
     filters,
     hasMultiple
 }: ProductDetailModalProps) {
     const isFiltered = Object.keys(filters).length > 0;
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
+
+    // Reset state when product changes
+    useEffect(() => {
+        setIsDeleting(false);
+        setLocalDrafts({});
+    }, [rowIndex]);
+
     // Keyboard navigation
     useEffect(() => {
         if (!isOpen) return;
@@ -50,6 +59,19 @@ export function ProductDetailModal({
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isOpen, onClose, onNext, onPrevious]);
+
+    const handleCommit = (column: string) => {
+        if (rowIndex === null) return;
+        const draftVal = localDrafts[column];
+        if (draftVal !== undefined) {
+            onUpdate(rowIndex, column, draftVal);
+            setLocalDrafts(prev => {
+                const next = { ...prev };
+                delete next[column];
+                return next;
+            });
+        }
+    };
 
     if (!product || rowIndex === null) return null;
 
@@ -132,20 +154,20 @@ export function ProductDetailModal({
                                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
                                         {titleField}
                                     </label>
-                                    {isFiltered && (
-                                        <button
-                                            onClick={() => onBulkUpdate(titleField, title)}
-                                            className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded transition-colors"
-                                            title="Apply this name to all currently filtered items"
-                                        >
-                                            <CheckCircle2 className="w-2.5 h-2.5" />
-                                            Apply to All
-                                        </button>
-                                    )}
                                 </div>
                                 <textarea
-                                    value={String(title || "")}
-                                    onChange={(e) => onUpdate(rowIndex, titleField, e.target.value)}
+                                    value={localDrafts[titleField] ?? String(title || "")}
+                                    onChange={(e) => {
+                                        setLocalDrafts(prev => ({ ...prev, [titleField]: e.target.value }));
+                                    }}
+                                    onBlur={() => handleCommit(titleField)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleCommit(titleField);
+                                            (e.target as HTMLTextAreaElement).blur();
+                                        }
+                                    }}
                                     className="w-full text-2xl md:text-3xl font-extrabold bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 resize-none min-h-[80px]"
                                     placeholder="Enter title..."
                                 />
@@ -166,38 +188,47 @@ export function ProductDetailModal({
                                                         <Edit2 className="w-2.5 h-2.5 opacity-40" />
                                                         {header}
                                                     </label>
-                                                    {isFiltered && (
-                                                        <button
-                                                            onClick={() => onBulkUpdate(header, value)}
-                                                            className="text-[9px] font-bold text-blue-500 hover:text-blue-600 uppercase tracking-tight flex items-center gap-1 bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-all"
-                                                            title={`Apply this value to all currently filtered items for ${header}`}
-                                                        >
-                                                            Bulk Apply
-                                                        </button>
-                                                    )}
                                                 </div>
 
                                                 {isDropdown ? (
-                                                    <div className="relative mt-1">
-                                                        <select
-                                                            value={String(value)}
-                                                            onChange={(e) => onUpdate(rowIndex, header, e.target.value)}
-                                                            className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-2 px-3 text-sm font-medium text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none cursor-pointer"
-                                                        >
-                                                            <option value="" disabled>Select...</option>
+                                                    <div className="relative mt-1 group/input">
+                                                        <input
+                                                            list={`datalist-modal-${header}`}
+                                                            value={localDrafts[header] ?? String(value)}
+                                                            onChange={(e) => {
+                                                                setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
+                                                            }}
+                                                            onBlur={() => handleCommit(header)}
+                                                            onKeyDown={(e) => {
+                                                                if (e.key === 'Enter') {
+                                                                    handleCommit(header);
+                                                                    (e.target as HTMLInputElement).blur();
+                                                                }
+                                                            }}
+                                                            className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-2 pl-3 pr-10 text-sm font-medium text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                                                            placeholder={`Edit ${header}...`}
+                                                        />
+                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none opacity-0 group-hover/input:opacity-100 transition-opacity" />
+                                                        <datalist id={`datalist-modal-${header}`}>
                                                             {options.map(opt => (
-                                                                <option key={opt} value={opt}>{opt}</option>
+                                                                <option key={opt} value={opt} />
                                                             ))}
-                                                            {!options.includes(String(value)) && value && (
-                                                                <option value={String(value)}>{String(value)}</option>
-                                                            )}
-                                                        </select>
-                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                                        </datalist>
                                                     </div>
                                                 ) : (
                                                     <textarea
-                                                        value={String(value)}
-                                                        onChange={(e) => onUpdate(rowIndex, header, e.target.value)}
+                                                        value={localDrafts[header] ?? String(value)}
+                                                        onChange={(e) => {
+                                                            setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
+                                                        }}
+                                                        onBlur={() => handleCommit(header)}
+                                                        onKeyDown={(e) => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                handleCommit(header);
+                                                                (e.target as HTMLTextAreaElement).blur();
+                                                            }
+                                                        }}
                                                         className="w-full bg-transparent border-none focus:ring-0 p-0 text-base font-medium text-gray-700 dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-700 resize-none min-h-[24px]"
                                                         placeholder="Empty"
                                                         rows={1}
