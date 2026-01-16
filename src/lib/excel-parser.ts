@@ -40,20 +40,42 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
         }
 
         // 1. AUTO-DETECT HEADER ROW
-        // Look for a row containing "Id" and "Name" (case-insensitive)
+        // Look for a row containing common keywords (case-insensitive)
         let headerRowIndex = 0;
         let groupRowIndex = -1;
 
-        for (let i = 0; i < Math.min(jsonSheet.length, 10); i++) {
-          // Get raw values for checking
-          const rawRow = jsonSheet[i];
-          const rowStr = rawRow.map(c => String(c).toLowerCase().trim());
+        const headerKeywords = ['id', 'name', 'brand', 'product', 'sku', 'ean', 'upc'];
 
-          // Check for presence of "id" and "name"
-          if (rowStr.includes('id') && rowStr.includes('name')) {
+        for (let i = 0; i < Math.min(jsonSheet.length, 10); i++) {
+          const rawRow = jsonSheet[i];
+          if (!rawRow || rawRow.length === 0) continue;
+
+          const rowStr = rawRow.map(c => String(c || "").toLowerCase().trim());
+
+          // Check if this row looks like a header row
+          const matchCount = headerKeywords.filter(k => rowStr.includes(k)).length;
+
+          if (matchCount >= 2 || (matchCount >= 1 && rowStr.length > 3)) {
             headerRowIndex = i;
-            if (i > 0) groupRowIndex = i - 1;
+            // If this is NOT the first row, check if the row above it has any content
+            if (i > 0) {
+              const aboveRow = jsonSheet[i - 1];
+              const hasContentAbove = aboveRow && aboveRow.some(c => String(c || "").trim() !== "");
+              if (hasContentAbove) {
+                groupRowIndex = i - 1;
+              }
+            }
             break;
+          }
+        }
+
+        // Fallback: If no keywords found in first 10 rows, use the first non-empty row
+        if (headerRowIndex === 0 && !jsonSheet[0]?.some(c => headerKeywords.includes(String(c || "").toLowerCase().trim()))) {
+          for (let i = 0; i < jsonSheet.length; i++) {
+            if (jsonSheet[i] && jsonSheet[i].some(c => String(c || "").trim() !== "")) {
+              headerRowIndex = i;
+              break;
+            }
           }
         }
 
