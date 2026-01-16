@@ -12,6 +12,7 @@ import { ProjectProvider, useProject } from '@/context/ProjectContext';
 import { DistributionChart } from '@/components/analytics/DistributionChart';
 import {
     ArrowRight,
+    ArrowLeft,
     CheckCircle2,
     LayoutGrid,
     Table,
@@ -79,10 +80,23 @@ function Dashboard() {
     };
 
     return (
-        <main className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300">
+        <main className="min-h-screen bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-gray-100 transition-colors duration-300 relative">
+            {/* Isolated Navigation Action */}
+            {viewMode === 'grid' && (
+                <div className="absolute top-8 left-8">
+                    <button
+                        onClick={() => setViewMode('upload')}
+                        className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-500 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-500/50 transition-all font-medium text-sm shadow-sm hover:shadow-md"
+                    >
+                        <ArrowLeft className="w-4 h-4" />
+                        Back to Upload Screen
+                    </button>
+                </div>
+            )}
+
             <div className="container mx-auto px-4 py-8">
                 <header className="mb-12 text-center">
-                    <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent cursor-pointer" onClick={() => window.location.reload()}>
+                    <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
                         Product Validator
                     </h1>
                     <p className="text-gray-500 dark:text-gray-400">
@@ -265,18 +279,6 @@ function Dashboard() {
                                     >
                                         <Download className={cn("w-4 h-4", isExporting && "animate-bounce")} />
                                         Export
-                                    </button>
-                                    <button
-                                        onClick={() => setViewMode('upload')}
-                                        className="px-3 py-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm font-medium text-gray-500 shrink-0"
-                                    >
-                                        Back
-                                    </button>
-                                    <button
-                                        onClick={() => window.location.reload()}
-                                        className="px-3 py-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors text-sm font-medium shrink-0"
-                                    >
-                                        Top
                                     </button>
                                 </div>
                             </div>
