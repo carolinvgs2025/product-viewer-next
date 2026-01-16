@@ -30,6 +30,8 @@ interface ProjectContextType {
     hasImageLinks: boolean;
     searchQuery: string;
     setSearchQuery: (query: string) => void;
+    sorting: { column: string; desc: boolean } | null;
+    setSorting: (sorting: { column: string; desc: boolean } | null) => void;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -47,6 +49,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const [history, setHistory] = useState<any[][]>([]);
     const [hasImageLinks, setHasImageLinks] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [sorting, setSorting] = useState<{ column: string; desc: boolean } | null>(null);
 
     const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => {
         setHeaders(result.headers);
@@ -60,6 +63,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         setFilters({});
         setShowOnlyChanged(false);
         setSearchQuery("");
+        setSorting(null);
         setHistory([]); // Clear history on new data
 
         // Check for Image Links
@@ -241,8 +245,24 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             });
         }
 
+        // 4. Sorting
+        if (sorting) {
+            const { column, desc } = sorting;
+            result = [...result].sort((a, b) => {
+                const aVal = a[column];
+                const bVal = b[column];
+
+                if (aVal === bVal) return 0;
+                if (aVal === null || aVal === undefined || aVal === "") return 1;
+                if (bVal === null || bVal === undefined || bVal === "") return -1;
+
+                const comparison = String(aVal).localeCompare(String(bVal), undefined, { numeric: true, sensitivity: 'base' });
+                return desc ? -comparison : comparison;
+            });
+        }
+
         return result;
-    }, [data, originalData, filters, showOnlyChanged, headers, searchQuery]);
+    }, [data, originalData, filters, showOnlyChanged, headers, searchQuery, sorting]);
 
     // Optimize Unique Values calculation: only calculate for visible headers and cache results
     const uniqueValues = useMemo(() => {
@@ -289,7 +309,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             canUndo: history.length > 0,
             hasImageLinks,
             searchQuery,
-            setSearchQuery
+            setSearchQuery,
+            sorting,
+            setSorting
         }}>
             {children}
         </ProjectContext.Provider>

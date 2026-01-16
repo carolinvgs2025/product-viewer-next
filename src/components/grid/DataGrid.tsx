@@ -19,8 +19,23 @@ import Image from 'next/image';
 const HEADER_HEIGHT = 48;
 
 export function DataGrid() {
-    const { filteredData, headers, images, originalData, searchQuery, setSearchQuery } = useProject();
-    const [sorting, setSorting] = useState<SortingState>([]);
+    const { filteredData, headers, images, originalData, searchQuery, setSearchQuery, sorting, setSorting } = useProject();
+
+    // Convert context sorting to TanStack Table sorting state
+    const tableSorting = useMemo(() => {
+        if (!sorting) return [];
+        return [{ id: sorting.column, desc: sorting.desc }];
+    }, [sorting]);
+
+    // Handle internal table sorting changes and push to context
+    const handleSortingChange = (updater: any) => {
+        const newSorting = typeof updater === 'function' ? updater(tableSorting) : updater;
+        if (newSorting.length > 0) {
+            setSorting({ column: newSorting[0].id, desc: newSorting[0].desc });
+        } else {
+            setSorting(null);
+        }
+    };
 
     // Memoize columns
     const columns = useMemo<ColumnDef<any>[]>(() => {
@@ -106,9 +121,10 @@ export function DataGrid() {
         data: filteredData,
         columns,
         state: {
-            sorting,
+            sorting: tableSorting,
         },
-        onSortingChange: setSorting,
+        onSortingChange: handleSortingChange,
+        manualSorting: true, // We handle sorting in the context/memo
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
         getFilteredRowModel: getFilteredRowModel(),
