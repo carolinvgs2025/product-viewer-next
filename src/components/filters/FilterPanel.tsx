@@ -15,6 +15,9 @@ export function FilterPanel() {
         const groups: Record<string, string[]> = {};
 
         columnMetadata.forEach(({ header, group }) => {
+            const lowerHeader = header.toLowerCase().trim();
+            if (lowerHeader === 'id' || lowerHeader === 'name') return;
+
             if (!groups[group]) {
                 groups[group] = [];
             }
@@ -28,12 +31,17 @@ export function FilterPanel() {
     const columnValues = useMemo(() => {
         const values: Record<string, Set<string>> = {};
 
-        columnMetadata.forEach(({ header }) => {
+        const filteredMeta = columnMetadata.filter(({ header }) => {
+            const lowerHeader = header.toLowerCase().trim();
+            return lowerHeader !== 'id' && lowerHeader !== 'name';
+        });
+
+        filteredMeta.forEach(({ header }) => {
             values[header] = new Set();
         });
 
         data.forEach(row => {
-            columnMetadata.forEach(({ header }) => {
+            filteredMeta.forEach(({ header }) => {
                 const val = row[header];
                 if (val) values[header].add(String(val));
             });
