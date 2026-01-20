@@ -1,7 +1,7 @@
 import * as XLSX from 'xlsx';
 import { ColumnMetadata } from './excel-parser';
 
-export const exportToExcel = (data: any[], headers: string[], columnMetadata: ColumnMetadata[], fileName: string = 'exported-data.xlsx') => {
+export const exportToExcel = (data: any[], headers: string[], columnMetadata: ColumnMetadata[], fileName: string = 'exported-data.xlsx', originalFileBuffer?: ArrayBuffer | null) => {
     try {
         console.log('Starting Excel export process...');
         console.log('Using XLSX version:', XLSX.version);
@@ -36,10 +36,24 @@ export const exportToExcel = (data: any[], headers: string[], columnMetadata: Co
         // 2. Create worksheet
         const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
 
-        // 3. Create workbook
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
-        console.log('Workbook created');
+        // 3. Create or Load Workbook
+        let workbook: XLSX.WorkBook;
+
+        if (originalFileBuffer) {
+            console.log('Original file buffer found. Loading original workbook to preserve sheets...');
+            workbook = XLSX.read(originalFileBuffer, { type: 'array' });
+
+            // Replace the first sheet (assuming the one we edited is the first one)
+            const firstSheetName = workbook.SheetNames[0];
+            console.log(`Replacing sheet: ${firstSheetName}`);
+
+            workbook.Sheets[firstSheetName] = worksheet;
+        } else {
+            console.log('No original buffer. Creating fresh workbook.');
+            workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+        }
+        console.log('Workbook contents prepared');
 
         // 4. Generate binary logic (Fix for Vercel/Production)
         // Instead of using writeFile (which can be flaky with file-saver in some envs), we construct the Blob manually.
