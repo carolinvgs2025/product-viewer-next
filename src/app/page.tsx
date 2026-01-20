@@ -21,19 +21,17 @@ import {
     RotateCcw,
     Download,
     BarChart3,
-    ArrowDownAZ,
-    ChevronUp,
     ChevronDown as ChevronDownIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { exportToExcel } from '@/lib/excel-export';
+import { SortControl } from '@/components/grid/SortControl';
 
 function Dashboard() {
     const { data, filteredData, originalData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, sorting, setSorting, images, uniqueValues, updateCell, deleteRow, filters } = useProject();
     const [viewMode, setViewMode] = useState<'upload' | 'grid'>('upload');
     const [isExporting, setIsExporting] = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(false);
-    const [showSorting, setShowSorting] = useState(false);
     const [analysisColumn, setAnalysisColumn] = useState('');
     const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
 
@@ -162,42 +160,21 @@ function Dashboard() {
                             </div>
 
                             <div className="flex items-center gap-3 bg-white dark:bg-gray-900 p-1.5 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm overflow-x-auto no-scrollbar w-full lg:w-auto">
-                                {/* Analytics Toggle */}
-                                <div className="flex items-center gap-2 px-1">
-                                    <button
-                                        onClick={() => {
-                                            setShowAnalysis(!showAnalysis);
-                                            setShowSorting(false);
-                                        }}
-                                        className={cn(
-                                            "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[11px] font-bold uppercase tracking-wider border",
-                                            showAnalysis
-                                                ? "bg-blue-600 border-blue-600 text-white shadow-md ring-2 ring-blue-500/20"
-                                                : "border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                        )}
-                                    >
-                                        <BarChart3 className="w-3.5 h-3.5" />
-                                        Analytics
-                                        <ChevronDownIcon className={cn("w-3.5 h-3.5 transition-transform duration-300", showAnalysis && "rotate-180")} />
-                                    </button>
-
-                                    {showAnalysis && (
-                                        <select
-                                            value={analysisColumn}
-                                            onChange={(e) => setAnalysisColumn(e.target.value)}
-                                            className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg text-xs font-bold py-1.5 px-2 focus:ring-1 focus:ring-blue-500 transition-all outline-none animate-in slide-in-from-left-2"
-                                        >
-                                            {headers
-                                                .filter(h => {
-                                                    const group = columnMetadata.find(m => m.header === h)?.group || "";
-                                                    return group.toLowerCase().includes('attribute');
-                                                })
-                                                .map(h => (
-                                                    <option key={h} value={h}>{h}</option>
-                                                ))}
-                                        </select>
+                                {/* Undo - Moved to Left */}
+                                <button
+                                    onClick={undo}
+                                    disabled={!canUndo}
+                                    className={cn(
+                                        "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm font-medium",
+                                        canUndo
+                                            ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10"
+                                            : "text-gray-300 dark:text-gray-700 cursor-not-allowed"
                                     )}
-                                </div>
+                                    title="Undo (Cmd+Z)"
+                                >
+                                    <RotateCcw className={cn("w-4 h-4", canUndo && "animate-in spin-in-180 duration-500")} />
+                                    Undo
+                                </button>
 
                                 <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
 
@@ -245,85 +222,56 @@ function Dashboard() {
 
                                 <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
 
-                                {/* Sort Toggle */}
-                                <div className="flex items-center gap-2 px-1 relative">
-                                    <button
-                                        onClick={() => {
-                                            setShowSorting(!showSorting);
-                                            setShowAnalysis(false);
-                                        }}
-                                        className={cn(
-                                            "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[11px] font-bold uppercase tracking-wider border whitespace-nowrap",
-                                            sorting || showSorting
-                                                ? "bg-blue-600 border-blue-600 text-white shadow-md ring-2 ring-blue-500/20"
-                                                : "border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
-                                        )}
-                                    >
-                                        <ArrowDownAZ className="w-3.5 h-3.5" />
-                                        Sort{sorting ? `: ${sorting.column}` : ""}
-                                        <ChevronDownIcon className={cn("w-3.5 h-3.5 transition-transform duration-300", showSorting && "rotate-180")} />
-                                    </button>
-
-                                    {/* Dropdown Menu */}
-                                    {showSorting && (
-                                        <div className="absolute right-0 top-full pt-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                                            <div className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl shadow-xl p-2 min-w-[200px]">
-                                                <div className="max-h-60 overflow-y-auto no-scrollbar">
-                                                    <button
-                                                        onClick={() => {
-                                                            setSorting(null);
-                                                            setShowSorting(false);
-                                                        }}
-                                                        className="w-full text-left px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 mb-1"
-                                                    >
-                                                        Clear Sort
-                                                    </button>
-                                                    {headers.map(h => (
-                                                        <div key={h} className="group/item flex items-center justify-between p-1">
-                                                            <span className="text-[11px] font-medium text-gray-600 dark:text-gray-400 px-2 line-clamp-1">{h}</span>
-                                                            <div className="flex gap-1 shadow-sm rounded-lg overflow-hidden border border-gray-100 dark:border-gray-800">
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setSorting({ column: h, desc: false });
-                                                                        setShowSorting(false);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "p-1.5 transition-colors",
-                                                                        sorting?.column === h && !sorting.desc
-                                                                            ? "bg-blue-600 text-white"
-                                                                            : "bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                                                    )}
-                                                                    title="A-Z"
-                                                                >
-                                                                    <ArrowDownAZ className="w-3.5 h-3.5" />
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => {
-                                                                        setSorting({ column: h, desc: true });
-                                                                        setShowSorting(false);
-                                                                    }}
-                                                                    className={cn(
-                                                                        "p-1.5 border-l border-gray-100 dark:border-gray-800 transition-colors",
-                                                                        sorting?.column === h && sorting.desc
-                                                                            ? "bg-blue-600 text-white"
-                                                                            : "bg-white dark:bg-gray-900 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800"
-                                                                    )}
-                                                                    title="Z-A"
-                                                                >
-                                                                    <div className="rotate-180 transform flex items-center justify-center">
-                                                                        <ArrowDownAZ className="w-3.5 h-3.5" />
-                                                                    </div>
-                                                                </button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                {/* Sort Control */}
+                                <div className="px-1">
+                                    <SortControl
+                                        headers={headers}
+                                        columnMetadata={columnMetadata}
+                                        sorting={sorting}
+                                        setSorting={setSorting}
+                                    />
                                 </div>
 
+                                <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
+
+                                {/* Right Actions Group: Analytics, Changes, Export */}
                                 <div className="flex items-center gap-2">
+                                    {/* Analytics Toggle */}
+                                    <div className="flex items-center gap-2 px-1">
+                                        <button
+                                            onClick={() => {
+                                                setShowAnalysis(!showAnalysis);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-[11px] font-bold uppercase tracking-wider border",
+                                                showAnalysis
+                                                    ? "bg-blue-600 border-blue-600 text-white shadow-md ring-2 ring-blue-500/20"
+                                                    : "border-gray-100 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5"
+                                            )}
+                                        >
+                                            <BarChart3 className="w-3.5 h-3.5" />
+                                            Analytics
+                                            <ChevronDownIcon className={cn("w-3.5 h-3.5 transition-transform duration-300", showAnalysis && "rotate-180")} />
+                                        </button>
+
+                                        {showAnalysis && (
+                                            <select
+                                                value={analysisColumn}
+                                                onChange={(e) => setAnalysisColumn(e.target.value)}
+                                                className="bg-gray-50 dark:bg-gray-800 border-none rounded-lg text-xs font-bold py-1.5 px-2 focus:ring-1 focus:ring-blue-500 transition-all outline-none animate-in slide-in-from-left-2"
+                                            >
+                                                {headers
+                                                    .filter(h => {
+                                                        const group = columnMetadata.find(m => m.header === h)?.group || "";
+                                                        return group.toLowerCase().includes('attribute');
+                                                    })
+                                                    .map(h => (
+                                                        <option key={h} value={h}>{h}</option>
+                                                    ))}
+                                            </select>
+                                        )}
+                                    </div>
+
                                     <button
                                         onClick={() => setShowOnlyChanged(!showOnlyChanged)}
                                         className={cn(
@@ -340,20 +288,6 @@ function Dashboard() {
                                         Changes
                                     </button>
 
-                                    <button
-                                        onClick={undo}
-                                        disabled={!canUndo}
-                                        className={cn(
-                                            "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all text-sm font-medium",
-                                            canUndo
-                                                ? "text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/10"
-                                                : "text-gray-300 dark:text-gray-700 cursor-not-allowed"
-                                        )}
-                                        title="Undo (Cmd+Z)"
-                                    >
-                                        <RotateCcw className={cn("w-4 h-4", canUndo && "animate-in spin-in-180 duration-500")} />
-                                        Undo
-                                    </button>
                                     <button
                                         onClick={handleExport}
                                         disabled={isExporting}
