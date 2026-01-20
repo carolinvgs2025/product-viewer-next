@@ -1,4 +1,4 @@
-import { utils, writeFile } from 'xlsx';
+import { utils, write } from 'xlsx';
 import { ColumnMetadata } from './excel-parser';
 
 export const exportToExcel = (data: any[], headers: string[], columnMetadata: ColumnMetadata[], fileName: string = 'exported-data.xlsx') => {
@@ -32,8 +32,26 @@ export const exportToExcel = (data: any[], headers: string[], columnMetadata: Co
     // 2. Create worksheet
     const worksheet = utils.aoa_to_sheet(worksheetData);
 
-    // 4. Create workbook and save
+    // 3. Create workbook
     const workbook = utils.book_new();
     utils.book_append_sheet(workbook, worksheet, 'Data');
-    writeFile(workbook, fileName);
+
+    // 4. Generate binary logic (Fix for Vercel/Production)
+    // Instead of using writeFile (which can be flaky with file-saver in some envs), we construct the Blob manually.
+    const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array' });
+
+    const dataBlob = new Blob([excelBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+    });
+
+    // 5. Trigger Download
+    const url = window.URL.createObjectURL(dataBlob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName.endsWith('.xlsx') ? fileName : `${fileName}.xlsx`;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    document.body.removeChild(anchor);
+    window.URL.revokeObjectURL(url);
 };
