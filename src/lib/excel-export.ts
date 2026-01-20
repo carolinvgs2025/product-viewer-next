@@ -49,7 +49,7 @@ export const exportToExcel = (data: any[], headers: string[], columnMetadata: Co
 
         console.log('Creating Blob...');
         const dataBlob = new Blob([excelBuffer], {
-            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=UTF-8'
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
         console.log('Blob created. Size:', dataBlob.size, 'Type:', dataBlob.type);
 
@@ -66,7 +66,14 @@ export const exportToExcel = (data: any[], headers: string[], columnMetadata: Co
         console.log('Click executed');
 
         document.body.removeChild(anchor);
-        window.URL.revokeObjectURL(url);
+
+        // Small timeout to ensure browser captures the file reference before we revoke it
+        // This prevents the "UUID filename" issue in some browsers
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+            console.log('URL revoked');
+        }, 100);
+
     } catch (error) {
         console.error('FATAL EXPORT ERROR:', error);
         alert('Export failed. Please check the console for details.');
