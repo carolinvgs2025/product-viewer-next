@@ -10,6 +10,7 @@ export interface ParseResult {
   data: any[];
   rowCount: number;
   columnMetadata: ColumnMetadata[];
+  originalFileBuffer?: ArrayBuffer;
 }
 
 export const parseExcelFile = async (file: File): Promise<ParseResult> => {
@@ -18,8 +19,8 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
 
     reader.onload = (e) => {
       try {
-        const data = e.target?.result;
-        const workbook = read(data, { type: 'binary' });
+        const data = e.target?.result as ArrayBuffer;
+        const workbook = read(data, { type: 'array' });
 
         // Explicitly lock to the first sheet as per user requirement
         const targetSheetName = workbook.SheetNames[0];
@@ -35,7 +36,7 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
         const jsonSheet = utils.sheet_to_json(worksheet, { header: 1 }) as any[][];
 
         if (jsonSheet.length === 0) {
-          resolve({ headers: [], data: [], rowCount: 0, columnMetadata: [] });
+          resolve({ headers: [], data: [], rowCount: 0, columnMetadata: [], originalFileBuffer: data });
           return;
         }
 
@@ -140,7 +141,8 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
           headers,
           data: finalData,
           rowCount: finalData.length,
-          columnMetadata
+          columnMetadata,
+          originalFileBuffer: data
         });
 
       } catch (error) {
@@ -149,6 +151,6 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
     };
 
     reader.onerror = (error) => reject(error);
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
   });
 };

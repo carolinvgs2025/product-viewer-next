@@ -17,7 +17,7 @@ interface ProjectContextType {
     filters: FilterState;
     showOnlyChanged: boolean;
     setShowOnlyChanged: (show: boolean) => void;
-    setProjectData: (result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => void;
+    setProjectData: (result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[], originalFileBuffer?: ArrayBuffer }) => void;
     updateImages: (newImages: Record<string, string>) => void;
     updateCell: (rowIndex: number, column: string, value: any) => void;
     bulkUpdate: (updates: { rowIndex: number, column: string, value: any }[]) => void;
@@ -32,6 +32,7 @@ interface ProjectContextType {
     setSearchQuery: (query: string) => void;
     sorting: { column: string; desc: boolean } | null;
     setSorting: (sorting: { column: string; desc: boolean } | null) => void;
+    originalFileBuffer: ArrayBuffer | null;
 }
 
 const ProjectContext = createContext<ProjectContextType | undefined>(undefined);
@@ -50,8 +51,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const [hasImageLinks, setHasImageLinks] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
     const [sorting, setSorting] = useState<{ column: string; desc: boolean } | null>(null);
+    const [originalFileBuffer, setOriginalFileBuffer] = useState<ArrayBuffer | null>(null);
 
-    const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[] }) => {
+    const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[], originalFileBuffer?: ArrayBuffer }) => {
         setHeaders(result.headers);
         const dataWithIndices = result.data.map((row, index) => ({
             ...row,
@@ -60,6 +62,9 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         setData(dataWithIndices);
         setOriginalData(JSON.parse(JSON.stringify(dataWithIndices)));
         setColumnMetadata(result.columnMetadata || []);
+        if (result.originalFileBuffer) {
+            setOriginalFileBuffer(result.originalFileBuffer);
+        }
         setFilters({});
         setShowOnlyChanged(false);
         setSearchQuery("");
@@ -311,7 +316,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             searchQuery,
             setSearchQuery,
             sorting,
-            setSorting
+            setSorting,
+            originalFileBuffer
         }}>
             {children}
         </ProjectContext.Provider>

@@ -28,7 +28,7 @@ import { exportToExcel } from '@/lib/excel-export';
 import { SortControl } from '@/components/grid/SortControl';
 
 function Dashboard() {
-    const { data, filteredData, originalData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, sorting, setSorting, images, uniqueValues, updateCell, deleteRow, filters } = useProject();
+    const { data, filteredData, originalData, headers, columnMetadata, setProjectData, undo, canUndo, showOnlyChanged, setShowOnlyChanged, sorting, setSorting, images, uniqueValues, updateCell, deleteRow, filters, originalFileBuffer } = useProject();
     const [viewMode, setViewMode] = useState<'upload' | 'grid'>('upload');
     const [isExporting, setIsExporting] = useState(false);
     const [showAnalysis, setShowAnalysis] = useState(false);
@@ -47,7 +47,7 @@ function Dashboard() {
     const handleExport = () => {
         setIsExporting(true);
         try {
-            exportToExcel(data, headers, columnMetadata, 'product-viewer-export.xlsx');
+            exportToExcel(data, headers, columnMetadata, 'product-viewer-export.xlsx', originalFileBuffer);
         } catch (error) {
             console.error('Export failed:', error);
             alert('Failed to export Excel file. Check console for details.');
