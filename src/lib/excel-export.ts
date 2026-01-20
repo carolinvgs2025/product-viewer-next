@@ -1,73 +1,91 @@
 import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { ColumnMetadata } from './excel-parser';
 
-export const exportToExcel = (data: any[], headers: string[], columnMetadata: ColumnMetadata[], fileName: string = 'exported-data.xlsx', originalFileBuffer?: ArrayBuffer | null) => {
+export const exportToExcel = async (
+    data: any[],
+    headers: string[],
+    columnMetadata: ColumnMetadata[],
+    fileName: string = 'exported-data.xlsx',
+    originalFileBuffer?: ArrayBuffer | null
+) => {
     try {
-        console.log('Starting Excel export process...');
-        console.log('Using XLSX version:', XLSX.version);
+        console.log('Starting Excel export process (Experimental: ExcelJS)...');
 
-        // 1. Prepare data for worksheet
+        // 1. Prepare data for insertion
         const hasGroups = columnMetadata.some(m => m.group && m.group !== 'General' && m.group !== 'Other' && m.group !== 'Identification');
-
-        const worksheetData: any[][] = [];
+        const rowsToInsert: any[][] = [];
 
         if (hasGroups) {
-            // Group row
             const groupRow = headers.map(h => {
                 const meta = columnMetadata.find(m => m.header === h);
                 const group = meta?.group || '';
-                // Hide default groups in export
                 if (group === 'Identification' || group === 'General' || group === 'Other') return '';
                 return group;
             });
-            worksheetData.push(groupRow);
+            rowsToInsert.push(groupRow);
         }
 
-        // Header row
-        worksheetData.push(headers);
+        rowsToInsert.push(headers);
 
-        // Data rows
         data.forEach(row => {
             const rowData = headers.map(h => row[h]);
-            worksheetData.push(rowData);
+            rowsToInsert.push(rowData);
         });
-        console.log('Worksheet data prepared. Rows:', worksheetData.length);
 
-        // 2. Create worksheet
-        const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
+        console.log(`Data prepared. ${rowsToInsert.length} rows to write.`);
 
-        // 3. Create or Load Workbook
-        let workbook: XLSX.WorkBook;
+        // 2. Load Workbook (Original or New)
+        const workbook = new ExcelJS.Workbook();
+        let worksheet: ExcelJS.Worksheet;
 
         if (originalFileBuffer) {
-            console.log('Original file buffer found. Loading original workbook to preserve sheets...');
-            workbook = XLSX.read(originalFileBuffer, { type: 'array' });
+            console.log('Loading original file buffer into ExcelJS...');
+            await workbook.xlsx.load(originalFileBuffer);
 
-            // Replace the first sheet (assuming the one we edited is the first one)
-            const firstSheetName = workbook.SheetNames[0];
-            console.log(`Replacing sheet: ${firstSheetName}`);
+            // Assume the first sheet is the one to update
+            // Note: ExcelJS sheets are 1-based, but array access is 0-based in .worksheets array, 
+            // BUT .getWorksheet(1) grabs the first one. Let's use array for safety.
+            worksheet = workbook.worksheets[0];
 
-            workbook.Sheets[firstSheetName] = worksheet;
+            if (!worksheet) {
+                console.warn('First sheet not found, creating new one.');
+                worksheet = workbook.addWorksheet('Data');
+            } else {
+                console.log(`Using existing sheet: "${worksheet.name}" (ID: ${worksheet.id})`);
+                // Clear existing data? 
+                // Strategy: Instead of deleting rows (which might break ranges), we overwrite.
+                // However, if the new data is shorter, old data remains.
+                // "Unzipping" approach is safer if we stick to cell-by-cell or row-by-row update.
+
+                // Let's try splice to remove old data but keep structure? 
+                // WARNING: Splice can shift references which might break pivots too.
+                // Safest for Pivot Preservation is usually: Clear values, keep cells.
+
+                // Simple approach first: Overwrite cells, then clear remaining if any.
+                // Actually, worksheet.spliceRows(1, worksheet.rowCount) is standard to clear data.
+                // Let's hope exceljs handles the shared strings correctly.
+                if (worksheet.rowCount > 0) {
+                    worksheet.spliceRows(1, worksheet.rowCount);
+                }
+            }
         } else {
-            console.log('No original buffer. Creating fresh workbook.');
-            workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+            console.log('Creating fresh workbook.');
+            worksheet = workbook.addWorksheet('Data');
         }
-        console.log('Workbook contents prepared');
 
-        // 4. Generate binary logic (Fix for Vercel/Production)
-        // Instead of using writeFile (which can be flaky with file-saver in some envs), we construct the Blob manually.
-        console.log('Generating binary buffer (Method: XLSX.write)...');
-        const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-        console.log('Binary buffer generated. Bytes:', excelBuffer.byteLength);
+        // 3. Write Data
+        worksheet.addRows(rowsToInsert);
 
-        console.log('Creating Blob...');
-        const dataBlob = new Blob([excelBuffer], {
+        // 4. Generate Output Buffer
+        console.log('Writing workbook to buffer...');
+        const buffer = await workbook.xlsx.writeBuffer();
+
+        // 5. Download
+        const dataBlob = new Blob([buffer], {
             type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         });
-        console.log('Blob created. Size:', dataBlob.size, 'Type:', dataBlob.type);
 
-        // 5. Trigger Download
         const url = window.URL.createObjectURL(dataBlob);
         const anchor = document.createElement('a');
         anchor.href = url;
@@ -75,17 +93,11 @@ export const exportToExcel = (data: any[], headers: string[], columnMetadata: Co
         anchor.style.display = 'none';
         document.body.appendChild(anchor);
 
-        console.log('Attempting to click download anchor:', anchor.download);
         anchor.click();
-        console.log('Click executed');
-
         document.body.removeChild(anchor);
 
-        // Small timeout to ensure browser captures the file reference before we revoke it
-        // This prevents the "UUID filename" issue in some browsers
         setTimeout(() => {
             window.URL.revokeObjectURL(url);
-            console.log('URL revoked');
         }, 100);
 
     } catch (error) {
