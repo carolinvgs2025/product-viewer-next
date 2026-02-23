@@ -112,6 +112,14 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                 {isDeleting && <span className="text-[10px] font-bold whitespace-nowrap">Confirm?</span>}
             </button>
 
+            {!imageUrl && (
+                <div className="absolute top-4 left-[88px] z-20">
+                    <div className="bg-red-500 text-white px-2 py-0.5 rounded-md text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-500/40 animate-pulse">
+                        MISSING
+                    </div>
+                </div>
+            )}
+
             <div
                 className="h-[320px] relative bg-gray-50 dark:bg-gray-800 overflow-hidden cursor-crosshair border-b border-gray-100 dark:border-gray-800"
                 onMouseMove={handleMouseMove}

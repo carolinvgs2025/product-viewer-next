@@ -6,8 +6,8 @@ import { ChevronDown, ChevronRight, X, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export function FilterPanel() {
-    const { columnMetadata, data, filters, setFilter, clearFilters } = useProject();
-    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
+    const { columnMetadata, data, filters, setFilter, clearFilters, showOnlyMissingImages, setShowOnlyMissingImages, images } = useProject();
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['System Filters']));
     const [expandedFilters, setExpandedFilters] = useState<Set<string>>(new Set());
 
     // Group columns by their category
@@ -91,11 +91,29 @@ export function FilterPanel() {
         setFilter(column, newFilter);
     };
 
-    const activeFilterCount = Object.values(filters).reduce((sum, set) => sum + set.size, 0);
+    const activeFilterCount = Object.values(filters).reduce((sum, set) => sum + set.size, 0) + (showOnlyMissingImages ? 1 : 0);
+
+    const missingImagesCount = useMemo(() => {
+        return data.filter(row => {
+            for (const key of Object.keys(row)) {
+                const val = String(row[key]);
+                if (images[val]) return false;
+                const fuzzyKey = Object.keys(images).find(k => k === val || k.startsWith(val + '.'));
+                if (fuzzyKey) return false;
+                if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) return false;
+            }
+            return true;
+        }).length;
+    }, [data, images]);
 
     if (columnMetadata.length === 0) {
         return null;
     }
+
+    const clearAllWithSystem = () => {
+        clearFilters();
+        setShowOnlyMissingImages(false);
+    };
 
     return (
         <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg p-4 sticky top-4 max-h-[calc(100vh-120px)] flex flex-col">
@@ -111,7 +129,7 @@ export function FilterPanel() {
                 </div>
                 {activeFilterCount > 0 && (
                     <button
-                        onClick={clearFilters}
+                        onClick={clearAllWithSystem}
                         className="text-xs text-red-500 hover:text-red-600 font-medium flex items-center gap-1"
                     >
                         <X className="w-3 h-3" />
@@ -121,6 +139,40 @@ export function FilterPanel() {
             </div>
 
             <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 flex-1 pr-2">
+                {/* System Filters */}
+                <div className="border border-blue-100 dark:border-blue-900/30 rounded-lg overflow-hidden mb-2">
+                    <button
+                        onClick={() => toggleGroup('System Filters')}
+                        className="w-full flex items-center justify-between p-3 bg-blue-50/50 dark:bg-blue-900/10 hover:bg-blue-100/50 dark:hover:bg-blue-900/20 transition-colors"
+                    >
+                        <span className="font-bold text-sm text-blue-700 dark:text-blue-400 uppercase tracking-tight">System Filters</span>
+                        {expandedGroups.has('System Filters') ? (
+                            <ChevronDown className="w-4 h-4 text-blue-500" />
+                        ) : (
+                            <ChevronRight className="w-4 h-4 text-blue-500" />
+                        )}
+                    </button>
+
+                    {expandedGroups.has('System Filters') && (
+                        <div className="p-3 space-y-3 bg-white dark:bg-gray-900">
+                            <label className="flex items-center justify-between cursor-pointer group">
+                                <div className="flex flex-col">
+                                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Missing Images</span>
+                                    <span className="text-[10px] text-gray-500 font-medium">{missingImagesCount} products need attention</span>
+                                </div>
+                                <div className="relative inline-flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        className="sr-only peer"
+                                        checked={showOnlyMissingImages}
+                                        onChange={(e) => setShowOnlyMissingImages(e.target.checked)}
+                                    />
+                                    <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                                </div>
+                            </label>
+                        </div>
+                    )}
+                </div>
                 {Object.entries(groupedColumns).map(([group, columns]) => {
                     if (group === 'Identification') return null;
 

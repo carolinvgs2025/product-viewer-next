@@ -17,6 +17,8 @@ interface ProjectContextType {
     filters: FilterState;
     showOnlyChanged: boolean;
     setShowOnlyChanged: (show: boolean) => void;
+    showOnlyMissingImages: boolean;
+    setShowOnlyMissingImages: (show: boolean) => void;
     setProjectData: (result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[], originalFileBuffer?: ArrayBuffer }) => void;
     updateImages: (newImages: Record<string, string>) => void;
     updateCell: (rowIndex: number, column: string, value: any) => void;
@@ -47,6 +49,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const [images, setImages] = useState<Record<string, string>>({});
     const [filters, setFilters] = useState<FilterState>({});
     const [showOnlyChanged, setShowOnlyChanged] = useState(false);
+    const [showOnlyMissingImages, setShowOnlyMissingImages] = useState(false);
     const [history, setHistory] = useState<any[][]>([]);
     const [hasImageLinks, setHasImageLinks] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
@@ -67,6 +70,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         }
         setFilters({});
         setShowOnlyChanged(false);
+        setShowOnlyMissingImages(false);
         setSearchQuery("");
         setSorting(null);
         setHistory([]); // Clear history on new data
@@ -196,7 +200,22 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             });
         }
 
-        // 2. Global Search filter (Support column:value syntax)
+        // 2. "Show only missing images" filter
+        if (showOnlyMissingImages) {
+            result = result.filter(row => {
+                // Image finding logic (synchronized with ProductCard)
+                for (const key of Object.keys(row)) {
+                    const val = String(row[key]);
+                    if (images[val]) return false;
+                    const fuzzyKey = Object.keys(images).find(k => k === val || k.startsWith(val + '.'));
+                    if (fuzzyKey) return false;
+                    if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) return false;
+                }
+                return true;
+            });
+        }
+
+        // 3. Global Search filter (Support column:value syntax)
         if (searchQuery.trim()) {
             const query = searchQuery.trim();
             const colonIndex = query.indexOf(':');
@@ -313,6 +332,8 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             filters,
             showOnlyChanged,
             setShowOnlyChanged,
+            showOnlyMissingImages,
+            setShowOnlyMissingImages,
             setProjectData,
             updateImages,
             updateCell,
