@@ -2,8 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ChevronLeft, ChevronRight, Edit2, ChevronDown, CheckCircle2, Trash2, AlertCircle, Plus } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Edit2, Trash2, Plus } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { EditableDropdown } from '../ui/EditableDropdown';
 
 interface ProductDetailModalProps {
     isOpen: boolean;
@@ -88,11 +89,12 @@ export function ProductDetailModal({
 
     if (!product || rowIndex === null) return null;
 
-    // Separate Title/Name from other attributes for clean display
-    const titleField = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('title')) || headers[0];
+    const titleField = headers.find(h => {
+        const lowerHeader = h.toLowerCase();
+        return lowerHeader.includes('name') || lowerHeader.includes('product description') || lowerHeader.includes('title');
+    }) || headers[0];
     const title = product[titleField];
 
-    // Identify filtered columns for "Quick Edit"
     const filteredColumns = Object.keys(filters).filter(col => col !== titleField);
     const otherHeaders = headers.filter(h => h !== titleField && !filteredColumns.includes(h));
 
@@ -100,7 +102,6 @@ export function ProductDetailModal({
         <AnimatePresence>
             {isOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-12 lg:p-24">
-                    {/* Backdrop / Overlay */}
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -109,7 +110,6 @@ export function ProductDetailModal({
                         className="fixed inset-0 bg-black/60 backdrop-blur-md transition-all"
                     />
 
-                    {/* Modal Content */}
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -117,7 +117,6 @@ export function ProductDetailModal({
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className="relative w-full max-w-6xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col md:flex-row border border-white/20 z-50"
                     >
-                        {/* Close Button */}
                         <button
                             onClick={onClose}
                             className="absolute top-4 right-4 z-50 p-2 bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 rounded-full text-gray-800 dark:text-white transition-colors border border-white/10"
@@ -125,7 +124,6 @@ export function ProductDetailModal({
                             <X className="w-5 h-5" />
                         </button>
 
-                        {/* Navigation Arrows (Floating) */}
                         {hasMultiple && (
                             <>
                                 <button
@@ -143,7 +141,6 @@ export function ProductDetailModal({
                             </>
                         )}
 
-                        {/* Left Side: Hero Image */}
                         <div
                             className="w-full md:w-1/2 bg-gray-50 dark:bg-gray-800/50 relative flex items-center justify-center p-4 border-b md:border-b-0 md:border-r border-gray-100 dark:border-gray-800 overflow-hidden cursor-crosshair"
                             onMouseMove={handleMouseMove}
@@ -161,7 +158,6 @@ export function ProductDetailModal({
                                         className="w-full h-full max-h-[70vh] object-contain drop-shadow-2xl"
                                         style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
                                     />
-                                    {/* Zoomed Image Overlay */}
                                     <div
                                         className="absolute inset-0 pointer-events-none transition-opacity duration-200"
                                         style={{
@@ -181,9 +177,7 @@ export function ProductDetailModal({
                             )}
                         </div>
 
-                        {/* Right Side: Data & Attributes */}
                         <div className="w-full md:w-1/2 flex flex-col bg-white/80 dark:bg-gray-900/90 backdrop-blur-sm">
-                            {/* Header Section */}
                             <div className="p-8 pb-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-white/5">
                                 <div className="flex items-center gap-2 mb-1">
                                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
@@ -208,9 +202,7 @@ export function ProductDetailModal({
                                 />
                             </div>
 
-                            {/* Attributes List */}
                             <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
-                                {/* Quick Edit Section (Filtered Fields) */}
                                 {filteredColumns.length > 0 && (
                                     <div className="animate-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center gap-2 mb-4 text-blue-600 dark:text-blue-400">
@@ -229,29 +221,38 @@ export function ProductDetailModal({
                                                             {header}
                                                         </label>
                                                         {isDropdown ? (
-                                                            <div className="relative group/input">
-                                                                <input
-                                                                    list={`datalist-modal-quick-${header}`}
+                                                            <div className="space-y-2">
+                                                                <EditableDropdown
                                                                     value={localDrafts[header] ?? String(value)}
-                                                                    onChange={(e) => {
-                                                                        setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
-                                                                    }}
-                                                                    onBlur={() => handleCommit(header)}
-                                                                    onKeyDown={(e) => {
-                                                                        if (e.key === 'Enter') {
-                                                                            handleCommit(header);
-                                                                            (e.target as HTMLInputElement).blur();
-                                                                        }
-                                                                    }}
+                                                                    options={options}
+                                                                    column={header}
+                                                                    rowIndex={rowIndex}
+                                                                    isModified={localDrafts[header] !== undefined}
+                                                                    onCommit={(val) => onUpdate(rowIndex, header, val)}
                                                                     className="w-full bg-white dark:bg-gray-800 border-2 border-blue-200 dark:border-blue-900/50 rounded-xl py-3 pl-4 pr-10 text-sm font-bold text-gray-900 dark:text-white focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all shadow-sm"
-                                                                    placeholder={`Edit ${header}...`}
                                                                 />
-                                                                <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-500/50 pointer-events-none" />
-                                                                <datalist id={`datalist-modal-quick-${header}`}>
-                                                                    {options.map(opt => (
-                                                                        <option key={opt} value={opt} />
-                                                                    ))}
-                                                                </datalist>
+                                                                {options.length > 0 && options.length <= 8 && (
+                                                                    <div className="flex flex-wrap gap-1.5 px-1">
+                                                                        {options.map(opt => (
+                                                                            <button
+                                                                                key={opt}
+                                                                                type="button"
+                                                                                onClick={(e) => {
+                                                                                    e.stopPropagation();
+                                                                                    onUpdate(rowIndex, header, opt);
+                                                                                }}
+                                                                                className={cn(
+                                                                                    "px-2 py-1 rounded-lg text-[10px] font-bold transition-all uppercase tracking-tighter",
+                                                                                    String(value) === opt
+                                                                                        ? "bg-blue-600 text-white shadow-md shadow-blue-500/20"
+                                                                                        : "bg-white dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-blue-50 dark:hover:bg-blue-900/40 border border-gray-200 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-800"
+                                                                                )}
+                                                                            >
+                                                                                {opt}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         ) : (
                                                             <input
@@ -293,29 +294,38 @@ export function ProductDetailModal({
                                                 </div>
 
                                                 {isDropdown ? (
-                                                    <div className="relative mt-1 group/input">
-                                                        <input
-                                                            list={`datalist-modal-${header}`}
+                                                    <div className="relative mt-1 space-y-2">
+                                                        <EditableDropdown
                                                             value={localDrafts[header] ?? String(value)}
-                                                            onChange={(e) => {
-                                                                setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
-                                                            }}
-                                                            onBlur={() => handleCommit(header)}
-                                                            onKeyDown={(e) => {
-                                                                if (e.key === 'Enter') {
-                                                                    handleCommit(header);
-                                                                    (e.target as HTMLInputElement).blur();
-                                                                }
-                                                            }}
+                                                            options={options}
+                                                            column={header}
+                                                            rowIndex={rowIndex}
+                                                            isModified={localDrafts[header] !== undefined}
+                                                            onCommit={(val) => onUpdate(rowIndex, header, val)}
                                                             className="w-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg py-2 pl-3 pr-10 text-sm font-medium text-gray-700 dark:text-gray-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                                                            placeholder={`Edit ${header}...`}
                                                         />
-                                                        <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none opacity-0 group-hover/input:opacity-100 transition-opacity" />
-                                                        <datalist id={`datalist-modal-${header}`}>
-                                                            {options.map(opt => (
-                                                                <option key={opt} value={opt} />
-                                                            ))}
-                                                        </datalist>
+                                                        {options.length > 0 && options.length <= 8 && (
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {options.map(opt => (
+                                                                    <button
+                                                                        key={opt}
+                                                                        type="button"
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            onUpdate(rowIndex, header, opt);
+                                                                        }}
+                                                                        className={cn(
+                                                                            "px-1.5 py-0.5 rounded text-[9px] font-bold transition-all uppercase tracking-tighter",
+                                                                            String(value) === opt
+                                                                                ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                                                                : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent"
+                                                                        )}
+                                                                    >
+                                                                        {opt}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ) : (
                                                     <textarea
@@ -347,7 +357,6 @@ export function ProductDetailModal({
                                 </div>
                             </div>
 
-                            {/* Footer / Actions */}
                             <div className="p-6 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-black/20 flex justify-between items-center">
                                 <div className="flex flex-col">
                                     <span className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">

@@ -245,6 +245,12 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
                         return cellValue !== null && cellValue !== undefined && String(cellValue).trim() !== '';
                     }
                     const cellValue = String(row[column] || "");
+
+                    // Special handling for (Blank)
+                    if (cellValue.trim() === '' && selectedValues.has('(Blank)')) {
+                        return true;
+                    }
+
                     return selectedValues.has(cellValue);
                 });
             });
@@ -257,10 +263,15 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
                 const aVal = a[column];
                 const bVal = b[column];
 
-                if (aVal === bVal) return 0;
-                if (aVal === null || aVal === undefined || aVal === "") return 1;
-                if (bVal === null || bVal === undefined || bVal === "") return -1;
+                // Handle nulls/empty
+                const aEmpty = aVal === null || aVal === undefined || aVal === "";
+                const bEmpty = bVal === null || bVal === undefined || bVal === "";
 
+                if (aEmpty && bEmpty) return 0;
+                if (aEmpty) return 1; // Empty always at bottom
+                if (bEmpty) return -1;
+
+                // String comparison
                 const comparison = String(aVal).localeCompare(String(bVal), undefined, { numeric: true, sensitivity: 'base' });
                 return desc ? -comparison : comparison;
             });

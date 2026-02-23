@@ -24,7 +24,7 @@ import {
     ChevronDown as ChevronDownIcon
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { exportToExcel } from '@/lib/excel-export';
+import * as XLSX from 'xlsx';
 import { SortControl } from '@/components/grid/SortControl';
 
 function Dashboard() {
@@ -34,6 +34,7 @@ function Dashboard() {
     const [showAnalysis, setShowAnalysis] = useState(false);
     const [analysisColumn, setAnalysisColumn] = useState('');
     const [selectedProductIndex, setSelectedProductIndex] = useState<number | null>(null);
+    const [exportClickCount, setExportClickCount] = useState(0);
 
     useEffect(() => {
         if (columnMetadata.length > 0 && !analysisColumn) {
@@ -44,13 +45,57 @@ function Dashboard() {
         }
     }, [columnMetadata.length, analysisColumn]);
 
-    const handleExport = () => {
+    const handleExport = async () => {
         setIsExporting(true);
         try {
-            exportToExcel(data, headers, columnMetadata, 'product-viewer-export.xlsx', originalFileBuffer);
+            // 1. Create clean worksheet & workbook
+            // Filter out internal fields like __rowIndex
+            const exportData = data.map(row => {
+                const { __rowIndex, ...rest } = row;
+                return rest;
+            });
+            const worksheet = XLSX.utils.json_to_sheet(exportData, { header: headers });
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Product Data');
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+            const timestamp = new Date().toISOString().split('T')[0];
+            const suggestedName = `Product_Export_${timestamp}.xlsx`;
+
+            // 2. THE NUCLEAR OPTION: File System Access API
+            // This forces a "Save As" dialog where the USER/OS controls the name, bypassing Chrome's renaming bugs.
+            if ('showSaveFilePicker' in window) {
+                try {
+                    const handle = await (window as any).showSaveFilePicker({
+                        suggestedName: suggestedName,
+                        types: [{
+                            description: 'Excel Spreadsheet',
+                            accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] }
+                        }]
+                    });
+                    const writable = await handle.createWritable();
+                    await writable.write(blob);
+                    await writable.close();
+                    return;
+                } catch (err: any) {
+                    if (err.name === 'AbortError') return;
+                    console.warn('File System API fallback:', err);
+                }
+            }
+
+            // 3. FALLBACK: Data URI Method (The "Base64" trick)
+            const b64 = XLSX.write(workbook, { bookType: 'xlsx', type: 'base64' });
+            const anchor = document.createElement('a');
+            anchor.href = 'data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,' + b64;
+            anchor.setAttribute('download', suggestedName);
+            anchor.style.display = 'none';
+            document.body.appendChild(anchor);
+            anchor.click();
+            document.body.removeChild(anchor);
         } catch (error) {
-            console.error('Export failed:', error);
-            alert('Failed to export Excel file. Check console for details.');
+            console.error('Export error:', error);
+            alert('Export encountered an issue. Please try again.');
         } finally {
             setIsExporting(false);
         }
@@ -94,38 +139,39 @@ function Dashboard() {
                 </div>
             )}
 
-            <div className="container mx-auto px-4 py-8">
-                <header className="mb-12 text-center">
-                    <h1 className="text-4xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
+            <div className="container mx-auto px-4 py-4">
+                <header className="mb-6 text-center">
+                    <h1 className="text-3xl font-extrabold tracking-tight mb-2 bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
                         Product Validator
                     </h1>
-                    <p className="text-gray-500 dark:text-gray-400">
-                        High-performance spreadsheet & image verification
+
+                    <p className="text-gray-500 dark:text-gray-400 font-medium">
+                        Spreadsheet & image verification
                     </p>
                 </header>
 
                 {viewMode === 'upload' ? (
-                    <div className="max-w-4xl mx-auto space-y-8">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 relative overflow-hidden">
+                    <div className="max-w-4xl mx-auto space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 relative overflow-hidden">
                                 {hasData && (
                                     <div className="absolute top-0 left-0 w-full h-1 bg-green-500" />
                                 )}
-                                <div className="flex justify-between items-center mb-6">
+                                <div className="flex justify-between items-center mb-4">
                                     <h2 className="text-xl font-semibold">1. Upload Spreadsheet</h2>
                                     {hasData && <CheckCircle2 className="text-green-500 w-6 h-6" />}
                                 </div>
                                 <ExcelUploader onUploadSuccess={setProjectData} />
                                 {hasData && (
                                     <p className="mt-4 text-center text-sm text-green-600 font-medium animate-in fade-in">
-                                        ✓ {headers.length} columns detected (Smart Parse)
+                                        ✓ {headers.length} columns detected (Standardized Parse)
                                     </p>
                                 )}
                             </div>
 
-                            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 bg-opacity-50">
+                            <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 bg-opacity-50">
                                 <h2 className="text-xl font-semibold mb-1">2. Upload Product Images</h2>
-                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 font-medium">
+                                <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 font-medium">
                                     Only required if no image link column is provided in step 1.
                                 </p>
                                 <ImageUploader />
@@ -133,7 +179,7 @@ function Dashboard() {
                         </div>
 
                         {/* Action Bar */}
-                        <div className="flex justify-center pt-8">
+                        <div className="flex justify-center pt-4">
                             <button
                                 onClick={handleViewGrid}
                                 disabled={!hasData}
@@ -224,12 +270,12 @@ function Dashboard() {
 
                                 {/* Sort Control */}
                                 <div className="px-1">
-                                    <SortControl
-                                        headers={headers}
-                                        columnMetadata={columnMetadata}
-                                        sorting={sorting}
-                                        setSorting={setSorting}
-                                    />
+                                    {/* <SortControl
+                                headers={headers}
+                                columnMetadata={columnMetadata}
+                                sorting={sorting}
+                                setSorting={setSorting}
+                            /> */}
                                 </div>
 
                                 <div className="h-5 w-px bg-gray-200 dark:bg-gray-800 mx-1" />
@@ -292,9 +338,8 @@ function Dashboard() {
                                         onClick={handleExport}
                                         disabled={isExporting}
                                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-all text-sm font-medium shadow-sm hover:shadow-blue-500/25 shrink-0"
-                                        title="Export to Excel"
                                     >
-                                        <Download className={cn("w-4 h-4", isExporting && "animate-bounce")} />
+                                        <Download className="w-4 h-4" />
                                         Export
                                     </button>
                                 </div>
@@ -327,7 +372,7 @@ function Dashboard() {
 
                                 {/* View Content */}
                                 {viewType === 'table' ? (
-                                    <DataGrid />
+                                    <DataGrid onRowClick={(index) => setSelectedProductIndex(index)} />
                                 ) : (
                                     <CardGrid
                                         columns={cardColumns}

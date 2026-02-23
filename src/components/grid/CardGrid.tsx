@@ -22,7 +22,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
     const virtualizer = useVirtualizer({
         count: rowCount,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => columns === 1 ? 344 : 624, // Optimized heights based on Card components
+        estimateSize: () => columns === 1 ? 600 : 640, // Adjusted for larger horizontal images and increased gap
         overscan: 3,
     });
 
@@ -45,15 +45,16 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                     return (
                         <div
                             key={virtualRow.index}
+                            data-index={virtualRow.index}
+                            ref={virtualizer.measureElement}
                             className={cn(
-                                "absolute top-0 left-0 w-full grid gap-6 px-4",
+                                "absolute top-0 left-0 w-full grid gap-12 px-4",
                                 // Dynamic Grid Classes based on column count
                                 columns === 1 ? "grid-cols-1" :
                                     columns === 2 ? "grid-cols-1 md:grid-cols-2" :
                                         "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
                             )}
                             style={{
-                                height: `${virtualRow.size}px`,
                                 transform: `translateY(${virtualRow.start}px)`,
                             }}
                         >
@@ -87,7 +88,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                                 return (
                                     <div
                                         key={item.__rowIndex ?? originalIndex}
-                                        className="h-full pb-6 cursor-pointer"
+                                        className="h-full pb-12 cursor-pointer"
                                         onClick={() => onCardClick?.(originalIndex)}
                                     >
                                         <CardComponent

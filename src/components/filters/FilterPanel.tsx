@@ -43,7 +43,11 @@ export function FilterPanel() {
         data.forEach(row => {
             filteredMeta.forEach(({ header }) => {
                 const val = row[header];
-                if (val) values[header].add(String(val));
+                if (val !== null && val !== undefined && String(val).trim() !== '') {
+                    values[header].add(String(val));
+                } else {
+                    values[header].add('(Blank)');
+                }
             });
         });
 

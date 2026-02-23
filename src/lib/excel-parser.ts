@@ -40,102 +40,56 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
           return;
         }
 
-        // 1. AUTO-DETECT HEADER ROW
-        // Look for a row containing common keywords (case-insensitive)
-        let headerRowIndex = 0;
-        let groupRowIndex = -1;
-
-        const headerKeywords = ['id', 'name', 'brand', 'product', 'sku', 'ean', 'upc'];
-
-        for (let i = 0; i < Math.min(jsonSheet.length, 10); i++) {
-          const rawRow = jsonSheet[i];
-          if (!rawRow || rawRow.length === 0) continue;
-
-          const rowStr = rawRow.map(c => String(c || "").toLowerCase().trim());
-
-          // Check if this row looks like a header row
-          const matchCount = headerKeywords.filter(k => rowStr.includes(k)).length;
-
-          if (matchCount >= 2 || (matchCount >= 1 && rowStr.length > 3)) {
-            headerRowIndex = i;
-            // If this is NOT the first row, check if the row above it has any content
-            if (i > 0) {
-              const aboveRow = jsonSheet[i - 1];
-              const hasContentAbove = aboveRow && aboveRow.some(c => String(c || "").trim() !== "");
-              if (hasContentAbove) {
-                groupRowIndex = i - 1;
-              }
-            }
-            break;
-          }
-        }
-
-        // Fallback: If no keywords found in first 10 rows, use the first non-empty row
-        if (headerRowIndex === 0 && !jsonSheet[0]?.some(c => headerKeywords.includes(String(c || "").toLowerCase().trim()))) {
-          for (let i = 0; i < jsonSheet.length; i++) {
-            if (jsonSheet[i] && jsonSheet[i].some(c => String(c || "").trim() !== "")) {
-              headerRowIndex = i;
-              break;
-            }
-          }
-        }
-
-        // 2. EXTRACT HEADERS & METADATA
-        const rawHeaderRow = jsonSheet[headerRowIndex];
-        const groupRow = groupRowIndex >= 0 ? jsonSheet[groupRowIndex] : null;
+        // 1. EXTRACT HEADERS & METADATA (Enforce 3-tier structure)
+        // Row 0: Groups, Row 1: Headers, Row 2+: Data
+        const groupRow = jsonSheet[0] || [];
+        const rawHeaderRow = jsonSheet[1] || [];
 
         const headers: string[] = [];
         const columnMetadata: ColumnMetadata[] = [];
-        const validIndices: number[] = []; // Track which column indices we actually keep
+        const validIndices: number[] = [];
 
-        let currentGroup = "";
+        let lastGroup = "";
 
-        // Iterate through the raw header positions
+        // Iterate through the raw header positions (Row 1)
         rawHeaderRow.forEach((cellValue: any, index: number) => {
           let headerText = cellValue ? String(cellValue).trim() : "";
-
-          // Sanitize: Replace newlines with spaces for cleaner keys
           headerText = headerText.replace(/[\r\n]+/g, " ");
 
           if (headerText) {
             headers.push(headerText);
             validIndices.push(index);
 
-            // Handle Grouping (Explicit headers only, no fill-right)
-            if (groupRow) {
-              const groupVal = groupRow[index];
-              if (groupVal && String(groupVal).trim()) {
-                currentGroup = String(groupVal).trim();
-              } else {
-                currentGroup = ""; // Reset if blank (don't inherit)
-              }
+            // Handle Grouping with "Fill-Right" Logic (Row 0)
+            const groupVal = groupRow[index];
+            const currentGroupText = groupVal ? String(groupVal).trim() : "";
+
+            if (currentGroupText) {
+              lastGroup = currentGroupText;
             }
+            // If current cell is empty, it inherits from lastGroup (fill-right)
 
             columnMetadata.push({
               header: headerText,
-              group: currentGroup || (groupRow ? "Identification" : "General")
+              group: lastGroup || "General"
             });
           }
         });
 
-        // 3. EXTRACT DATA
-        // Start reading data from the row after the header
-        const rawDataRows = jsonSheet.slice(headerRowIndex + 1);
+        // 2. EXTRACT DATA
+        // Start reading data from Row 2 onwards
+        const rawDataRows = jsonSheet.slice(2);
 
         const finalData = rawDataRows.map((rowArray: any[]) => {
+          if (!rowArray) return null;
           const rowObj: any = {};
-          // Only map the columns that had valid headers
           validIndices.forEach((colIndex, i) => {
             const header = headers[i];
-            const value = rowArray[colIndex]; // Direct index mapping
-            // Store undefined/null as empty string or keep as is? 
-            // Context expects explicit values, but undefined often okay.
-            // Converting to string here might be safer for display consistency?
-            // But let's keep raw types if possible (numbers, etc).
+            const value = rowArray[colIndex];
             rowObj[header] = value !== undefined ? value : "";
           });
           return rowObj;
-        });
+        }).filter(Boolean);
 
         resolve({
           headers,

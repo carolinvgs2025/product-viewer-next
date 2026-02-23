@@ -83,10 +83,10 @@ export function ImageUploader() {
     const imageCount = Object.keys(images).length;
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-2">
             <div
                 className={cn(
-                    "relative rounded-xl border-2 border-dashed transition-all duration-300 p-8 text-center",
+                    "relative rounded-xl border-2 border-dashed transition-all duration-300 p-10 text-center min-h-[320px] flex flex-col justify-center items-center gap-4",
                     isDragging
                         ? "border-purple-500 bg-purple-50/10 scale-[1.01] shadow-lg"
                         : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20",
@@ -104,9 +104,9 @@ export function ImageUploader() {
                     onChange={handleFileInput}
                 />
 
-                <div className="flex flex-col items-center gap-4">
+                <div className="flex flex-col items-center gap-2">
                     <div className={cn(
-                        "p-4 rounded-full bg-gray-100 dark:bg-white/5 transition-transform duration-300",
+                        "p-3 rounded-full bg-gray-100 dark:bg-white/5 transition-transform duration-300",
                         isDragging && "scale-110"
                     )}>
                         {uploading ? (

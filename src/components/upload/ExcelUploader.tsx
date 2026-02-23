@@ -61,7 +61,7 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
         <div className="relative group">
             <div
                 className={cn(
-                    "relative rounded-xl border-2 border-dashed transition-all duration-300 p-8 md:p-12 text-center",
+                    "relative rounded-xl border-2 border-dashed transition-all duration-300 p-4 md:p-6 text-center",
                     isDragging
                         ? "border-blue-500 bg-blue-50/10 scale-[1.01] shadow-lg"
                         : "border-gray-200 dark:border-white/10 hover:border-gray-300 dark:hover:border-white/20",
@@ -78,7 +78,7 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
                     onChange={handleFileInput}
                 />
 
-                <div className="flex flex-col items-center gap-6 pointer-events-none">
+                <div className="flex flex-col items-center gap-3 pointer-events-none">
                     <div className={cn(
                         "p-4 rounded-full bg-gray-100 dark:bg-white/5 transition-transform duration-300",
                         isDragging && "scale-110"
@@ -90,8 +90,8 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
                         )}
                     </div>
 
-                    <div className="space-y-4 w-full max-w-sm">
-                        <div className="space-y-2">
+                    <div className="space-y-2 w-full max-w-sm">
+                        <div className="space-y-1">
                             <h3 className="text-lg font-semibold dark:text-white">
                                 {isProcessing ? "Processing Spreadsheet..." : "Drop your Excel file here"}
                             </h3>
@@ -111,13 +111,13 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
                                 <div className="text-[8px] text-gray-400 font-medium self-center px-1 italic">Row 1</div>
                                 <div className="px-1 invisible">.</div>
                                 <div className="px-1 invisible">.</div>
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded py-0.5 text-[7px] font-bold text-blue-500 uppercase tracking-widest text-center truncate">Attr...</div>
-                                <div className="bg-blue-500/10 border border-blue-500/20 rounded py-0.5 text-[7px] font-bold text-blue-500 uppercase tracking-widest text-center truncate">Attr...</div>
+                                <div className="bg-blue-500/10 border border-blue-500/20 rounded py-0.5 text-[7px] font-bold text-blue-500 uppercase tracking-widest text-center truncate">Attributes</div>
+                                <div className="bg-blue-500/10 border border-blue-500/20 rounded py-0.5 text-[7px] font-bold text-blue-500 uppercase tracking-widest text-center truncate">Distribution</div>
 
                                 <div className="text-[8px] text-gray-400 font-medium self-center px-1 italic">Row 2</div>
 
                                 {/* Field Headers Row */}
-                                {['ID', 'Name', 'Brand', 'Scent'].map((h) => (
+                                {['ID', 'Name', 'Brand', 'Grocery'].map((h) => (
                                     <div key={h} className="bg-white dark:bg-gray-800 p-1.5 rounded border border-gray-100 dark:border-white/5 text-[9px] font-bold text-gray-400 dark:text-gray-500 truncate">
                                         {h}
                                     </div>
@@ -127,10 +127,10 @@ export function ExcelUploader({ onUploadSuccess }: ExcelUploaderProps) {
                                 {[1, 2].map((i) => (
                                     <Fragment key={i}>
                                         <div className="text-[8px] text-gray-400/30 font-medium self-center px-1 italic">...</div>
-                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse" />
-                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-80" />
-                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-60" />
-                                        <div className="h-2 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-40" />
+                                        <div className="h-1.5 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse" />
+                                        <div className="h-1.5 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-80" />
+                                        <div className="h-1.5 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-60" />
+                                        <div className="h-1.5 bg-gray-200 dark:bg-gray-700/50 rounded animate-pulse opacity-40" />
                                     </Fragment>
                                 ))}
                             </div>

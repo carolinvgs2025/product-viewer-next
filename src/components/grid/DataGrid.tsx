@@ -18,7 +18,7 @@ import Image from 'next/image';
 
 const HEADER_HEIGHT = 48;
 
-export function DataGrid() {
+export function DataGrid({ onRowClick }: { onRowClick?: (index: number) => void }) {
     const { filteredData, headers, images, originalData, searchQuery, setSearchQuery, sorting, setSorting } = useProject();
 
     // Convert context sorting to TanStack Table sorting state
@@ -216,8 +216,9 @@ export function DataGrid() {
                             return (
                                 <div
                                     key={row.id}
+                                    onClick={() => onRowClick?.(virtualRow.index)}
                                     className={cn(
-                                        "absolute top-0 left-0 grid border-b border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors text-sm items-center",
+                                        "absolute top-0 left-0 grid border-b border-gray-100 dark:border-gray-800 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors text-sm items-center cursor-pointer",
                                         virtualRow.index % 2 === 0 ? "bg-white dark:bg-gray-900" : "bg-gray-50/50 dark:bg-gray-800/30"
                                     )}
                                     style={{

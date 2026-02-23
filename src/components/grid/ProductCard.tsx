@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { ChevronDown, Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Edit2 } from 'lucide-react';
 import { FilterState, useProject } from '@/context/ProjectContext';
+import { EditableDropdown } from '../ui/EditableDropdown';
 
 interface ProductCardProps {
     data: any;
@@ -35,7 +36,6 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
         setZoomStyle(prev => ({ ...prev, opacity: 0 }));
     };
 
-    // Reset delete state when mouse leaves card to avoid stuck state
     const handleMouseLeaveCard = () => {
         setIsDeleting(false);
     };
@@ -55,15 +55,22 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
     const originalRow = originalData[rowIndex];
     const isModified = originalRow && headers.some(h => String(data[h]) !== String(originalRow[h]));
 
-    // Find the "Name" or "Title" to display prominently
-    const titleField = headers.find(h => h.toLowerCase().includes('name') || h.toLowerCase().includes('title')) || headers[0];
+    const titleField = headers.find(h => {
+        const lowerHeader = h.toLowerCase();
+        return lowerHeader.includes('name') || lowerHeader.includes('product description') || lowerHeader.includes('title');
+    }) || headers[0];
     const title = data[titleField];
     const isTitleModified = originalRow && String(title) !== String(originalRow[titleField]);
 
     const otherHeaders = headers.filter(h => h !== titleField);
 
-    // Find the "ID" field for the badge
-    const idField = headers.find(h => h.toLowerCase() === 'id' || h.toLowerCase() === 'id ') || null;
+    const idField = headers.find(h => {
+        const lowerHeader = h.toLowerCase().trim();
+        return lowerHeader === 'id' ||
+            lowerHeader === 'product id' ||
+            lowerHeader === 'item id' ||
+            lowerHeader.includes('image id');
+    }) || null;
     const idValue = idField ? data[idField] : `#${rowIndex + 1}`;
 
     return (
@@ -78,14 +85,12 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                     : "border-gray-100 dark:border-gray-800"
             )}
         >
-            {/* ID / Index Badge */}
             <div className="absolute top-4 left-4 z-20">
-                <div className="bg-black/60 backdrop-blur-md text-white px-2 py-0.5 rounded-full text-[9px] font-bold border border-white/10 uppercase">
+                <div className="bg-black/60 backdrop-blur-md text-white px-3 py-1 rounded-full text-xl font-bold border border-white/10 uppercase tracking-tight">
                     {idValue}
                 </div>
             </div>
 
-            {/* Delete Button - Floating */}
             <button
                 onClick={(e) => {
                     e.stopPropagation();
@@ -107,7 +112,6 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                 {isDeleting && <span className="text-[10px] font-bold whitespace-nowrap">Confirm?</span>}
             </button>
 
-            {/* Image Area - Increased Height */}
             <div
                 className="h-[320px] relative bg-gray-50 dark:bg-gray-800 overflow-hidden cursor-crosshair border-b border-gray-100 dark:border-gray-800"
                 onMouseMove={handleMouseMove}
@@ -115,15 +119,12 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
             >
                 {imageUrl ? (
                     <>
-                        {/* Normal Image */}
                         <img
                             src={imageUrl}
                             alt={String(title)}
                             className="object-contain p-0 w-full h-full"
                             style={{ opacity: zoomStyle.opacity ? 0.3 : 1 }}
                         />
-
-                        {/* Zoomed Image Overlay */}
                         <div
                             className="absolute inset-0 pointer-events-none"
                             style={{
@@ -143,9 +144,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                 )}
             </div>
 
-            {/* Content Area */}
             <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900">
-                {/* Title Section - Prominent */}
                 <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800/50">
                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 block">
                         {titleField}
@@ -174,7 +173,6 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                     />
                 </div>
 
-                {/* Quick Edit (Filtered Fields) Section */}
                 {Object.keys(activeFilters).length > 0 && (
                     <div className="bg-blue-50/50 dark:bg-blue-900/10 border-b border-gray-100 dark:border-gray-800 px-4 py-2">
                         <div className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400 mb-2">
@@ -201,35 +199,38 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                                                 )}
                                             </div>
                                             {isDropdown ? (
-                                                <div className="relative group/input">
-                                                    <input
-                                                        list={`datalist-${rowIndex}-${column}`}
+                                                <div className="space-y-1.5">
+                                                    <EditableDropdown
                                                         value={localDrafts[column] ?? String(value)}
-                                                        onChange={(e) => {
-                                                            setLocalDrafts(prev => ({ ...prev, [column]: e.target.value }));
-                                                        }}
-                                                        onBlur={() => handleCommit(column)}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                                handleCommit(column);
-                                                                (e.target as HTMLInputElement).blur();
-                                                            }
-                                                        }}
-                                                        className={cn(
-                                                            "w-full bg-white dark:bg-gray-800 border rounded text-[11px] py-1 pl-1.5 pr-6 transition-colors focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200",
-                                                            isFieldModified
-                                                                ? "border-blue-400 dark:border-blue-500/50 text-blue-600 dark:text-blue-400"
-                                                                : "border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700"
-                                                        )}
-                                                        placeholder={`Edit ${column}...`}
-                                                        onClick={(e) => e.stopPropagation()}
+                                                        options={options}
+                                                        column={column}
+                                                        rowIndex={rowIndex}
+                                                        isModified={isFieldModified}
+                                                        onCommit={(val) => onUpdate(rowIndex, column, val)}
+                                                        className="py-1 pl-1.5 pr-6 text-[11px]"
                                                     />
-                                                    <ChevronDown className="absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none opacity-0 group-hover/input:opacity-100 transition-opacity" />
-                                                    <datalist id={`datalist-${rowIndex}-${column}`}>
-                                                        {options.map(opt => (
-                                                            <option key={opt} value={opt} />
-                                                        ))}
-                                                    </datalist>
+                                                    {options.length > 0 && options.length <= 8 && (
+                                                        <div className="flex flex-wrap gap-1">
+                                                            {options.map(opt => (
+                                                                <button
+                                                                    key={opt}
+                                                                    type="button"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        onUpdate(rowIndex, column, opt);
+                                                                    }}
+                                                                    className={cn(
+                                                                        "px-1.5 py-0.5 rounded text-[9px] font-medium transition-all",
+                                                                        String(value) === opt
+                                                                            ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                                                            : "bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 border border-transparent"
+                                                                    )}
+                                                                >
+                                                                    {opt}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <input
@@ -262,7 +263,6 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                     </div>
                 )}
 
-                {/* Scrollable Fields - Increased Max Height */}
                 <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-2 max-h-[200px]">
                     {otherHeaders.map((header) => {
                         const value = data[header] || "";
@@ -290,35 +290,19 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                                 </div>
 
                                 {isDropdown ? (
-                                    <div className="relative group/input">
-                                        <input
-                                            list={`datalist-scroll-${rowIndex}-${header}`}
+                                    <div className="relative">
+                                        <EditableDropdown
                                             value={localDrafts[header] ?? String(value)}
-                                            onChange={(e) => {
-                                                setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
-                                            }}
-                                            onBlur={() => handleCommit(header)}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                    handleCommit(header);
-                                                    (e.target as HTMLInputElement).blur();
-                                                }
-                                            }}
-                                            onClick={(e) => e.stopPropagation()}
+                                            options={options}
+                                            column={header}
+                                            rowIndex={rowIndex}
+                                            isModified={isFieldModified}
+                                            onCommit={(val) => onUpdate(rowIndex, header, val)}
                                             className={cn(
-                                                "w-full bg-gray-50 dark:bg-gray-800 border rounded-md py-1 pl-3 pr-8 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-colors",
-                                                isFieldModified
-                                                    ? "border-blue-400/50 text-blue-600 dark:text-blue-400 bg-blue-50/30 dark:bg-blue-900/5"
-                                                    : "border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                                "py-1 pl-3 pr-8 text-sm",
+                                                !isFieldModified && "bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
                                             )}
-                                            placeholder={`Edit ${header}...`}
                                         />
-                                        <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none opacity-0 group-hover/input:opacity-100 transition-opacity" />
-                                        <datalist id={`datalist-scroll-${rowIndex}-${header}`}>
-                                            {options.map(opt => (
-                                                <option key={opt} value={opt} />
-                                            ))}
-                                        </datalist>
                                         <div className="mt-1 text-[10px] text-gray-400 font-medium whitespace-nowrap overflow-hidden text-ellipsis">
                                             Common: {options.slice(0, 3).join(', ')}...
                                         </div>
