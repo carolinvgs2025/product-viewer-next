@@ -94,17 +94,19 @@ export function FilterPanel() {
     const activeFilterCount = Object.values(filters).reduce((sum, set) => sum + set.size, 0) + (showOnlyMissingImages ? 1 : 0);
 
     const missingImagesCount = useMemo(() => {
+        const headers = columnMetadata.map(m => m.header);
         return data.filter(row => {
-            for (const key of Object.keys(row)) {
-                const val = String(row[key]);
-                if (images[val]) return false;
+            const hasImage = headers.some(h => {
+                const val = String(row[h] || "").trim();
+                if (!val) return false;
+                if (images[val]) return true;
                 const fuzzyKey = Object.keys(images).find(k => k === val || k.startsWith(val + '.'));
-                if (fuzzyKey) return false;
-                if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) return false;
-            }
-            return true;
+                if (fuzzyKey) return true;
+                return typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'));
+            });
+            return !hasImage;
         }).length;
-    }, [data, images]);
+    }, [data, images, columnMetadata]);
 
     if (columnMetadata.length === 0) {
         return null;

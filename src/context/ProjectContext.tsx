@@ -204,14 +204,16 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         if (showOnlyMissingImages) {
             result = result.filter(row => {
                 // Image finding logic (synchronized with ProductCard)
-                for (const key of Object.keys(row)) {
-                    const val = String(row[key]);
-                    if (images[val]) return false;
+                // Use headers instead of Object.keys to avoid false matches with internal fields
+                const hasImage = headers.some(h => {
+                    const val = String(row[h] || "").trim();
+                    if (!val) return false;
+                    if (images[val]) return true;
                     const fuzzyKey = Object.keys(images).find(k => k === val || k.startsWith(val + '.'));
-                    if (fuzzyKey) return false;
-                    if (typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'))) return false;
-                }
-                return true;
+                    if (fuzzyKey) return true;
+                    return typeof val === 'string' && (val.startsWith('http://') || val.startsWith('https://'));
+                });
+                return !hasImage;
             });
         }
 
@@ -297,7 +299,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
         }
 
         return result;
-    }, [data, originalData, filters, showOnlyChanged, headers, searchQuery, sorting]);
+    }, [data, originalData, filters, showOnlyChanged, showOnlyMissingImages, images, headers, searchQuery, sorting]);
 
     // Optimize Unique Values calculation: only calculate for visible headers and cache results
     const uniqueValues = useMemo(() => {
