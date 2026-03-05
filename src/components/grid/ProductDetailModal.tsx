@@ -91,7 +91,10 @@ export function ProductDetailModal({
 
     const titleField = headers.find(h => {
         const lowerHeader = h.toLowerCase();
-        return lowerHeader.includes('name') || lowerHeader.includes('product description') || lowerHeader.includes('title');
+        return lowerHeader.includes('name') ||
+            lowerHeader.includes('product description') ||
+            lowerHeader.includes('description') ||
+            lowerHeader.includes('title');
     }) || headers[0];
     const title = product[titleField];
 
@@ -178,8 +181,11 @@ export function ProductDetailModal({
                         </div>
 
                         <div className="w-full md:w-1/2 flex flex-col bg-white/80 dark:bg-gray-900/90 backdrop-blur-sm">
-                            <div className="p-8 pb-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-white/5">
-                                <div className="flex items-center gap-2 mb-1">
+                            <div className={cn(
+                                "p-8 border-b border-gray-100 dark:border-gray-800 bg-gray-50/30 dark:bg-white/5",
+                                (titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id')) ? "pb-2 pt-4" : "pb-4"
+                            )}>
+                                <div className="flex items-center gap-2 mb-0.5">
                                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest block">
                                         {titleField}
                                     </label>
@@ -197,12 +203,18 @@ export function ProductDetailModal({
                                             (e.target as HTMLTextAreaElement).blur();
                                         }
                                     }}
-                                    className="w-full text-2xl md:text-3xl font-extrabold bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 resize-none min-h-[80px]"
+                                    className={cn(
+                                        "w-full font-extrabold bg-transparent border-none focus:ring-0 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-gray-700 resize-none",
+                                        (titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id'))
+                                            ? "text-lg md:text-xl min-h-[32px] py-1"
+                                            : "text-2xl md:text-3xl min-h-[80px]"
+                                    )}
+                                    rows={(titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id')) ? 1 : 2}
                                     placeholder="Enter title..."
                                 />
                             </div>
 
-                            <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800">
+                            <div className="flex-1 overflow-y-auto p-8 space-y-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-500">
                                 {filteredColumns.length > 0 && (
                                     <div className="animate-in slide-in-from-top-2 duration-300">
                                         <div className="flex items-center gap-2 mb-4 text-blue-600 dark:text-blue-400">

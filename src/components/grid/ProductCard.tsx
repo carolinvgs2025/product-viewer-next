@@ -57,7 +57,10 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
 
     const titleField = headers.find(h => {
         const lowerHeader = h.toLowerCase();
-        return lowerHeader.includes('name') || lowerHeader.includes('product description') || lowerHeader.includes('title');
+        return lowerHeader.includes('name') ||
+            lowerHeader.includes('product description') ||
+            lowerHeader.includes('description') ||
+            lowerHeader.includes('title');
     }) || headers[0];
     const title = data[titleField];
     const isTitleModified = originalRow && String(title) !== String(originalRow[titleField]);
@@ -153,8 +156,11 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
             </div>
 
             <div className="flex-1 flex flex-col min-h-0 bg-white dark:bg-gray-900">
-                <div className="px-4 py-3 border-b border-gray-50 dark:border-gray-800/50">
-                    <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-1 block">
+                <div className={cn(
+                    "px-4 border-b border-gray-50 dark:border-gray-800/50",
+                    (titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id')) ? "py-1.5" : "py-3"
+                )}>
+                    <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-0.5 block">
                         {titleField}
                     </label>
                     <textarea
@@ -171,11 +177,12 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                             }
                         }}
                         className={cn(
-                            "w-full text-base font-bold bg-transparent border-2 border-transparent hover:border-gray-200 focus:border-blue-500 focus:outline-none transition-colors text-gray-900 dark:text-gray-100 resize-none rounded-md px-2 py-1 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
+                            "w-full bg-transparent border-2 border-transparent hover:border-gray-200 focus:border-blue-500 focus:outline-none transition-colors text-gray-900 dark:text-gray-100 resize-none rounded-md px-2 py-0.5 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600",
+                            (titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id')) ? "text-sm font-semibold" : "text-base font-bold",
                             isTitleModified && "text-blue-600 dark:text-blue-400"
                         )}
                         placeholder={`Enter ${titleField}...`}
-                        rows={2}
+                        rows={(titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id')) ? 1 : 2}
                         style={{ maxHeight: '72px', overflow: 'auto' }}
                         onClick={(e) => e.stopPropagation()}
                     />
@@ -271,7 +278,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                     </div>
                 )}
 
-                <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 space-y-2 max-h-[200px]">
+                <div className="flex-1 overflow-y-auto px-4 pb-4 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-500 space-y-2 max-h-[200px]">
                     {otherHeaders.map((header) => {
                         const value = data[header] || "";
                         const originalValue = originalRow ? originalRow[header] : value;

@@ -140,7 +140,7 @@ export function FilterPanel() {
                 )}
             </div>
 
-            <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 flex-1 pr-2">
+            <div className="space-y-2 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-500 flex-1 pr-2">
                 {/* System Filters */}
                 <div className="border border-blue-100 dark:border-blue-900/30 rounded-lg overflow-hidden mb-2">
                     <button
@@ -242,7 +242,7 @@ export function FilterPanel() {
                                                         {column}
                                                     </label>
                                                 </div>
-                                                <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
+                                                <div className="space-y-1 max-h-48 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-500">
                                                     {displayValues.map(value => (
                                                         <label
                                                             key={value}
