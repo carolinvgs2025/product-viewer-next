@@ -5,6 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useProject } from '@/context/ProjectContext';
 import { ProductCard } from './ProductCard';
 import { ProductCardHorizontal } from './ProductCardHorizontal';
+import { ProductCardImageOnly } from './ProductCardImageOnly';
 import { cn } from '@/lib/utils';
 
 interface CardGridProps {
@@ -22,7 +23,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
     const virtualizer = useVirtualizer({
         count: rowCount,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => columns === 1 ? 600 : 640, // Adjusted for larger horizontal images and increased gap
+        estimateSize: () => columns === 1 ? 600 : (columns === 5 ? 320 : 640),
         overscan: 3,
     });
 
@@ -48,11 +49,12 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                             data-index={virtualRow.index}
                             ref={virtualizer.measureElement}
                             className={cn(
-                                "absolute top-0 left-0 w-full grid gap-12 px-4",
+                                "absolute top-0 left-0 w-full grid gap-4 md:gap-6 px-4",
                                 // Dynamic Grid Classes based on column count
                                 columns === 1 ? "grid-cols-1" :
                                     columns === 2 ? "grid-cols-1 md:grid-cols-2" :
-                                        "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                                        columns === 5 ? "grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5" :
+                                            "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
                             )}
                             style={{
                                 transform: `translateY(${virtualRow.start}px)`,
@@ -83,7 +85,8 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                                     }
                                 }
 
-                                const CardComponent = columns === 1 ? ProductCardHorizontal : ProductCard;
+                                const CardComponent = columns === 1 ? ProductCardHorizontal : 
+                                                      columns === 5 ? ProductCardImageOnly : ProductCard;
 
                                 return (
                                     <div

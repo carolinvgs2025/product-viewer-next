@@ -19,7 +19,7 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, onDelete, activeFilters }: ProductCardProps) {
-    const { originalData } = useProject();
+    const { originalData, hiddenColumns } = useProject();
     const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
     const isFiltered = Object.keys(activeFilters).length > 0;
     const [zoomStyle, setZoomStyle] = useState({ opacity: 0, x: 0, y: 0 });
@@ -64,8 +64,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
     }) || headers[0];
     const title = data[titleField];
     const isTitleModified = originalRow && String(title) !== String(originalRow[titleField]);
-
-    const otherHeaders = headers.filter(h => h !== titleField);
+    const otherHeaders = headers.filter(h => h !== titleField && !hiddenColumns.has(h));
 
     const idField = headers.find(h => {
         const lowerHeader = h.toLowerCase().trim();
@@ -182,8 +181,8 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
                             isTitleModified && "text-blue-600 dark:text-blue-400"
                         )}
                         placeholder={`Enter ${titleField}...`}
-                        rows={(titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id')) ? 1 : 2}
-                        style={{ maxHeight: '72px', overflow: 'auto' }}
+                        rows={(titleField.toLowerCase() === 'id' || titleField.toLowerCase().includes('id')) ? 1 : 3}
+                        style={{ minHeight: '60px', height: 'auto', overflow: 'hidden' }}
                         onClick={(e) => e.stopPropagation()}
                     />
                 </div>

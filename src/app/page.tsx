@@ -18,6 +18,7 @@ import {
     Table,
     Grid2X2,
     Grid3X3,
+    Image as ImageIcon,
     RotateCcw,
     Download,
     BarChart3,
@@ -116,7 +117,7 @@ function Dashboard() {
     }, [undo, canUndo]);
 
     const [viewType, setViewType] = useState<'table' | 'cards'>('table');
-    const [cardColumns, setCardColumns] = useState<1 | 2 | 3>(3);
+    const [cardColumns, setCardColumns] = useState<1 | 2 | 3 | 5>(3);
 
     const hasData = data.length > 0;
 
@@ -241,8 +242,8 @@ function Dashboard() {
                                     </button>
                                     <div className="w-px h-4 bg-gray-200 dark:bg-gray-700 my-auto mx-1" />
                                     <div className="flex gap-0.5">
-                                        {([1, 2, 3] as const).map((cols) => {
-                                            const Icon = cols === 1 ? LayoutGrid : (cols === 2 ? Grid2X2 : Grid3X3);
+                                        {([1, 2, 3, 5] as const).map((cols) => {
+                                            const Icon = cols === 1 ? LayoutGrid : (cols === 2 ? Grid2X2 : (cols === 3 ? Grid3X3 : ImageIcon));
                                             return (
                                                 <button
                                                     key={cols}
@@ -259,7 +260,7 @@ function Dashboard() {
                                                     )}
                                                 >
                                                     <Icon className="w-4 h-4" />
-                                                    <span className="text-[9px] font-bold">{cols}</span>
+                                                    {cols !== 5 && <span className="text-[9px] font-bold">{cols}</span>}
                                                 </button>
                                             );
                                         })}

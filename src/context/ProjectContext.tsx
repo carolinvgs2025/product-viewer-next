@@ -19,8 +19,11 @@ interface ProjectContextType {
     setShowOnlyChanged: (show: boolean) => void;
     showOnlyMissingImages: boolean;
     setShowOnlyMissingImages: (show: boolean) => void;
+    hiddenColumns: Set<string>;
+    toggleColumnVisibility: (column: string) => void;
     setProjectData: (result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[], originalFileBuffer?: ArrayBuffer }) => void;
     updateImages: (newImages: Record<string, string>) => void;
+    updateHeaderOrder: (newHeaders: string[]) => void;
     updateCell: (rowIndex: number, column: string, value: any) => void;
     bulkUpdate: (updates: { rowIndex: number, column: string, value: any }[]) => void;
     deleteRow: (rowIndex: number) => void;
@@ -55,6 +58,7 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
     const [searchQuery, setSearchQuery] = useState("");
     const [sorting, setSorting] = useState<{ column: string; desc: boolean } | null>(null);
     const [originalFileBuffer, setOriginalFileBuffer] = useState<ArrayBuffer | null>(null);
+    const [hiddenColumns, setHiddenColumns] = useState<Set<string>>(new Set());
 
     const setProjectData = useCallback((result: { headers: string[], data: any[], columnMetadata: ColumnMetadata[], originalFileBuffer?: ArrayBuffer }) => {
         setHeaders(result.headers);
@@ -87,6 +91,10 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
     const updateImages = useCallback((newImages: Record<string, string>) => {
         setImages(prev => ({ ...prev, ...newImages }));
+    }, []);
+
+    const updateHeaderOrder = useCallback((newHeaders: string[]) => {
+        setHeaders(newHeaders);
     }, []);
 
     const pushToHistory = useCallback((currentData: any[]) => {
@@ -185,6 +193,18 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
 
     const clearFilters = useCallback(() => {
         setFilters({});
+    }, []);
+
+    const toggleColumnVisibility = useCallback((column: string) => {
+        setHiddenColumns(prev => {
+            const next = new Set(prev);
+            if (next.has(column)) {
+                next.delete(column);
+            } else {
+                next.add(column);
+            }
+            return next;
+        });
     }, []);
 
     // Compute filtered data including Search logic
@@ -336,8 +356,11 @@ export function ProjectProvider({ children }: { children: React.ReactNode }) {
             setShowOnlyChanged,
             showOnlyMissingImages,
             setShowOnlyMissingImages,
+            hiddenColumns,
+            toggleColumnVisibility,
             setProjectData,
             updateImages,
+            updateHeaderOrder,
             updateCell,
             bulkUpdate,
             deleteRow,

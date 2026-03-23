@@ -40,23 +40,49 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
           return;
         }
 
-        // 1. EXTRACT HEADERS & METADATA (Enforce 3-tier structure)
-        // Row 0: Groups, Row 1: Headers, Row 2+: Data
-        const groupRow = jsonSheet[0] || [];
-        const rawHeaderRow = jsonSheet[1] || [];
+        // 1. EXTRACT HEADERS & METADATA
+        // Auto-detect 1-tier vs 2-tier structure
+        let groupRow: any[] = [];
+        let rawHeaderRow: any[] = [];
+        let dataStartIndex = 1;
+
+        const row0Str = (jsonSheet[0] || []).map(v => String(v || "").toLowerCase()).join(" ");
+        const firstColBlankRow0 = !jsonSheet[0]?.[0] || String(jsonSheet[0]?.[0]).trim() === "";
+        const firstColHasValueRow1 = !!jsonSheet[1]?.[0] && String(jsonSheet[1]?.[0]).trim() !== "";
+        const hasGrouping = row0Str.includes("attribute") || (firstColBlankRow0 && firstColHasValueRow1);
+
+        if (hasGrouping) {
+            groupRow = jsonSheet[0] || [];
+            rawHeaderRow = jsonSheet[1] || [];
+            dataStartIndex = 2;
+        } else {
+            groupRow = []; // Default group will be "General"
+            rawHeaderRow = jsonSheet[0] || [];
+            dataStartIndex = 1;
+        }
 
         const headers: string[] = [];
         const columnMetadata: ColumnMetadata[] = [];
         const validIndices: number[] = [];
 
         let lastGroup = "";
+        const seenHeaders = new Set<string>();
 
-        // Iterate through the raw header positions (Row 1)
+        // Iterate through the raw header positions
         rawHeaderRow.forEach((cellValue: any, index: number) => {
           let headerText = cellValue ? String(cellValue).trim() : "";
           headerText = headerText.replace(/[\r\n]+/g, " ");
 
           if (headerText) {
+            // Deduplicate header
+            let originalHeader = headerText;
+            let counter = 1;
+            while (seenHeaders.has(headerText)) {
+                headerText = `${originalHeader} (${counter})`;
+                counter++;
+            }
+            seenHeaders.add(headerText);
+
             headers.push(headerText);
             validIndices.push(index);
 
@@ -77,8 +103,8 @@ export const parseExcelFile = async (file: File): Promise<ParseResult> => {
         });
 
         // 2. EXTRACT DATA
-        // Start reading data from Row 2 onwards
-        const rawDataRows = jsonSheet.slice(2);
+        // Start reading data from dataStartIndex onwards
+        const rawDataRows = jsonSheet.slice(dataStartIndex);
 
         const finalData = rawDataRows.map((rowArray: any[]) => {
           if (!rowArray) return null;

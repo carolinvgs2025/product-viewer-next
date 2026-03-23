@@ -21,7 +21,7 @@ interface ProductCardHorizontalProps {
 export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, onDelete, activeFilters }: ProductCardHorizontalProps) {
     const isFiltered = Object.keys(activeFilters).length > 0;
     const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
-    const { originalData } = useProject();
+    const { originalData, hiddenColumns } = useProject();
     const [isDeleting, setIsDeleting] = useState(false);
 
     const handleCommit = (column: string) => {
@@ -45,8 +45,8 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
     }) || headers[0];
     const title = data[titleField];
 
-    const quickEditColumns = Object.keys(activeFilters).filter(col => col !== titleField);
-    const otherHeaders = headers.filter(h => h !== titleField && !quickEditColumns.includes(h));
+    const quickEditColumns = Object.keys(activeFilters).filter(col => col !== titleField && !hiddenColumns.has(col));
+    const otherHeaders = headers.filter(h => h !== titleField && !quickEditColumns.includes(h) && !hiddenColumns.has(h));
 
     const idField = headers.find(h => {
         const lowerHeader = h.toLowerCase().trim();
@@ -127,8 +127,8 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                         }}
                         className="w-full text-lg font-bold bg-transparent border-none focus:ring-0 p-1 text-gray-900 dark:text-gray-100 resize-none rounded-md placeholder-gray-300 dark:placeholder-gray-700 leading-tight"
                         placeholder={`Enter ${titleField}...`}
-                        rows={1}
-                        style={{ overflow: 'hidden' }}
+                        rows={3}
+                        style={{ minHeight: '60px', height: 'auto', overflow: 'hidden' }}
                         onClick={(e) => e.stopPropagation()}
                     />
                 </div>
