@@ -23,7 +23,14 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
     const virtualizer = useVirtualizer({
         count: rowCount,
         getScrollElement: () => parentRef.current,
-        estimateSize: () => columns === 1 ? 600 : (columns === 5 ? 320 : 640),
+        estimateSize: () => {
+            if (columns === 1) return 600;
+            if (columns === 2) return 640;
+            if (columns === 3) return 640;
+            if (columns === 4) return 380;
+            if (columns === 5) return 320;
+            return 640;
+        },
         overscan: 3,
     });
 
@@ -53,8 +60,8 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                                 // Dynamic Grid Classes based on column count
                                 columns === 1 ? "grid-cols-1" :
                                     columns === 2 ? "grid-cols-1 md:grid-cols-2" :
-                                        columns === 5 ? "grid-cols-2 lg:grid-cols-4 2xl:grid-cols-5" :
-                                            "grid-cols-1 md:grid-cols-2 lg:grid-cols-3"
+                                        columns === 3 ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" :
+                                            "grid-cols-2 lg:grid-cols-4" // Responsive Image View (max 4)
                             )}
                             style={{
                                 transform: `translateY(${virtualRow.start}px)`,
@@ -86,7 +93,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
                                 }
 
                                 const CardComponent = columns === 1 ? ProductCardHorizontal : 
-                                                      columns === 5 ? ProductCardImageOnly : ProductCard;
+                                                      columns === 4 ? ProductCardImageOnly : ProductCard;
 
                                 return (
                                     <div

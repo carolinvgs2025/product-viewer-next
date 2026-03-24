@@ -68,10 +68,7 @@ export function ProductCard({ data, headers, imageUrl, rowIndex, uniqueValues, o
 
     const idField = headers.find(h => {
         const lowerHeader = h.toLowerCase().trim();
-        return lowerHeader === 'id' ||
-            lowerHeader === 'product id' ||
-            lowerHeader === 'item id' ||
-            lowerHeader.includes('image id');
+        return lowerHeader === 'id' || lowerHeader === 'product id';
     }) || null;
     const idValue = idField ? data[idField] : `#${rowIndex + 1}`;
 

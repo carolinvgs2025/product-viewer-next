@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, ChevronDown, ChevronRight } from 'lucide-react';
 import { FilterState, useProject } from '@/context/ProjectContext';
 import { EditableDropdown } from '../ui/EditableDropdown';
 
@@ -21,8 +21,18 @@ interface ProductCardHorizontalProps {
 export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqueValues, onUpdate, onDelete, activeFilters }: ProductCardHorizontalProps) {
     const isFiltered = Object.keys(activeFilters).length > 0;
     const [localDrafts, setLocalDrafts] = useState<Record<string, string>>({});
-    const { originalData, hiddenColumns } = useProject();
+    const { originalData, hiddenColumns, columnMetadata } = useProject();
     const [isDeleting, setIsDeleting] = useState(false);
+    const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(['Identity', 'System Filters']));
+
+    const toggleGroup = (group: string) => {
+        setExpandedGroups(prev => {
+            const next = new Set(prev);
+            if (next.has(group)) next.delete(group);
+            else next.add(group);
+            return next;
+        });
+    };
 
     const handleCommit = (column: string) => {
         const draftVal = localDrafts[column];
@@ -45,12 +55,24 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
     }) || headers[0];
     const title = data[titleField];
 
-    const quickEditColumns = Object.keys(activeFilters).filter(col => col !== titleField && !hiddenColumns.has(col));
-    const otherHeaders = headers.filter(h => h !== titleField && !quickEditColumns.includes(h) && !hiddenColumns.has(h));
+    // Group headers by their metadata group
+    const groupedAttributes = useMemo(() => {
+        const groups: Record<string, string[]> = {};
+        const visibleHeaders = headers.filter(h => h !== titleField && !hiddenColumns.has(h));
+        
+        visibleHeaders.forEach(header => {
+            const meta = columnMetadata.find(m => m.header === header);
+            const groupName = meta?.group || 'Other';
+            if (!groups[groupName]) groups[groupName] = [];
+            groups[groupName].push(header);
+        });
+        
+        return groups;
+    }, [headers, columnMetadata, hiddenColumns, titleField]);
 
     const idField = headers.find(h => {
         const lowerHeader = h.toLowerCase().trim();
-        return lowerHeader === 'id' || lowerHeader === 'product id' || lowerHeader === 'item id' || lowerHeader.includes('image id');
+        return lowerHeader === 'id' || lowerHeader === 'product id';
     }) || null;
     const idValue = idField ? data[idField] : `#${rowIndex + 1}`;
 
@@ -108,7 +130,10 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
             </div>
 
             <div className="flex-1 flex flex-col min-w-0 bg-white dark:bg-gray-900">
-                <div className="p-5 pb-3 border-b border-gray-50 dark:border-gray-800/50 flex flex-col gap-1">
+                <div 
+                    className="p-5 pb-3 border-b border-gray-50 dark:border-gray-800/50 flex flex-col gap-1"
+                    onClick={(e) => e.stopPropagation()}
+                >
                     <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest px-1">
                         {titleField}
                     </label>
@@ -133,148 +158,115 @@ export function ProductCardHorizontal({ data, headers, imageUrl, rowIndex, uniqu
                     />
                 </div>
 
-                <div className="flex-1 overflow-x-auto scrollbar-hide">
-                    <div className="p-5 flex gap-6">
-                        {quickEditColumns.length > 0 ? (
-                            <div className="shrink-0 space-y-3 min-w-[280px]">
-                                <div className="flex items-center gap-2 text-blue-600 dark:text-blue-400">
-                                    <Plus className="w-3 h-3" />
-                                    <span className="text-[10px] font-bold uppercase tracking-widest">Quick View</span>
-                                </div>
-                                <div className="grid grid-cols-1 gap-3 bg-blue-50/50 dark:bg-blue-900/10 p-3 rounded-xl border border-blue-100/50 dark:border-blue-900/30">
-                                    {quickEditColumns.map((column) => {
-                                        const value = data[column] || "";
-                                        const options = uniqueValues[column];
-                                        const isDropdown = options && options.length > 0;
-                                        const isFieldModified = originalRow && String(value) !== String(originalRow[column]);
-
-                                        return (
-                                            <div key={column} className="flex flex-col gap-1.5 relative">
-                                                <label className="text-[9px] font-bold text-blue-500/80 dark:text-blue-400/80 uppercase tracking-widest px-1">
-                                                    {column}
-                                                </label>
-                                                {isDropdown ? (
-                                                    <div className="space-y-1.5">
-                                                        <EditableDropdown
-                                                            value={localDrafts[column] ?? String(value)}
-                                                            options={options}
-                                                            column={column}
-                                                            rowIndex={rowIndex}
-                                                            isModified={isFieldModified}
-                                                            onCommit={(val) => onUpdate(rowIndex, column, val)}
-                                                            className="py-1.5 pl-3 pr-8 text-xs font-semibold shadow-sm"
-                                                        />
-                                                        {options.length > 0 && options.length <= 8 ? (
-                                                            <div className="flex flex-wrap gap-1.5">
-                                                                {options.map(opt => (
-                                                                    <button
-                                                                        key={opt}
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            onUpdate(rowIndex, column, opt);
-                                                                        }}
-                                                                        className={cn(
-                                                                            "px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all",
-                                                                            String(value) === opt
-                                                                                ? "bg-blue-600 text-white shadow-sm"
-                                                                                : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700"
-                                                                        )}
-                                                                    >
-                                                                        {opt}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        ) : null}
-                                                    </div>
-                                                ) : (
-                                                    <input
-                                                        value={localDrafts[column] ?? String(value)}
-                                                        onChange={(e) => {
-                                                            setLocalDrafts(prev => ({ ...prev, [column]: e.target.value }));
-                                                        }}
-                                                        onBlur={() => handleCommit(column)}
-                                                        onKeyDown={(e) => {
-                                                            if (e.key === 'Enter') {
-                                                                handleCommit(column);
-                                                                (e.target as HTMLInputElement).blur();
-                                                            }
-                                                        }}
-                                                        onClick={(e) => e.stopPropagation()}
-                                                        className={cn(
-                                                            "w-full bg-white dark:bg-gray-800 border rounded-lg text-xs font-semibold py-1.5 px-3 focus:ring-2 focus:ring-blue-500 focus:outline-none dark:text-gray-200 shadow-sm transition-all",
-                                                            isFieldModified
-                                                                ? "border-blue-400 text-blue-600"
-                                                                : "border-gray-200 dark:border-gray-700 hover:border-blue-300"
-                                                        )}
-                                                        placeholder={`Edit...`}
-                                                    />
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        ) : null}
-
-                        <div className="flex gap-6 min-w-0">
-                            {otherHeaders.map((header) => {
-                                const value = data[header] || "";
-                                const options = uniqueValues[header];
-                                const isDropdown = options && options.length > 0;
-                                const isFieldModified = originalRow && String(value) !== String(originalRow[header]);
-
-                                return (
-                                    <div key={header} className="flex flex-col gap-1.5 min-w-[200px] border-l border-gray-50 dark:border-gray-800 pl-4 first:border-0 first:pl-0 group/field">
-                                        <div className="flex items-center gap-1.5">
-                                            <Edit2 className="w-2.5 h-2.5 text-gray-300 group-hover/field:text-blue-400 transition-colors" />
-                                            <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest whitespace-nowrap">
-                                                {header}
-                                            </label>
+                <div className="flex-1 overflow-hidden flex flex-col">
+                    <div className="flex-1 overflow-y-auto custom-scrollbar">
+                        {Object.entries(groupedAttributes).map(([groupName, groupHeaders]: [string, string[]]) => {
+                            const isExpanded = expandedGroups.has(groupName);
+                            
+                            return (
+                                <div key={groupName} className="border-b border-gray-50 dark:border-gray-800/50 last:border-none">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleGroup(groupName);
+                                        }}
+                                        className="w-full px-5 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group/header"
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-1 h-4 bg-blue-500 rounded-full opacity-0 group-hover/header:opacity-100 transition-opacity" />
+                                            <span className="text-[11px] font-black uppercase tracking-[0.15em] text-gray-500 dark:text-gray-400">
+                                                {groupName}
+                                            </span>
+                                            <span className="px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 text-[9px] font-bold text-gray-400">
+                                                {groupHeaders.length}
+                                            </span>
                                         </div>
+                                        {isExpanded ? <ChevronDown className="w-3.5 h-3.5 text-gray-400" /> : <ChevronRight className="w-3.5 h-3.5 text-gray-400" />}
+                                    </button>
 
-                                        {isDropdown ? (
-                                            <div className="relative">
-                                                <EditableDropdown
-                                                    value={localDrafts[header] ?? String(value)}
-                                                    options={options}
-                                                    column={header}
-                                                    rowIndex={rowIndex}
-                                                    isModified={isFieldModified}
-                                                    onCommit={(val) => onUpdate(rowIndex, header, val)}
-                                                    className="py-1.5 pl-3 pr-8 text-xs font-medium bg-gray-50/50 dark:bg-gray-800/50 border-gray-100 dark:border-gray-800 hover:bg-white dark:hover:bg-gray-800 transition-all"
-                                                />
-                                                <div className="mt-1 text-[8px] text-gray-400 font-bold uppercase tracking-tight opacity-0 group-hover/field:opacity-100 transition-opacity">
-                                                    {options.length} Options available
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <textarea
-                                                value={localDrafts[header] ?? String(value)}
-                                                onChange={(e) => {
-                                                    setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
-                                                }}
-                                                onBlur={() => handleCommit(header)}
-                                                onKeyDown={(e) => {
-                                                    if (e.key === 'Enter' && !e.shiftKey) {
-                                                        e.preventDefault();
-                                                        handleCommit(header);
-                                                        (e.target as HTMLTextAreaElement).blur();
-                                                    }
-                                                }}
-                                                onClick={(e) => e.stopPropagation()}
-                                                className={cn(
-                                                    "w-full bg-transparent border-none focus:ring-0 p-1 text-sm font-medium text-gray-700 dark:text-gray-200 resize-none rounded-md placeholder-gray-200 dark:placeholder-gray-800 leading-snug",
-                                                    isFieldModified && "text-blue-600 font-bold"
-                                                )}
-                                                placeholder="Empty"
-                                                rows={2}
-                                            />
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                                    {isExpanded && (
+                                        <div className="px-5 pb-6 pt-2 grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-6 animate-in fade-in slide-in-from-top-2 duration-300">
+                                            {groupHeaders.map((header: string) => {
+                                                const value = data[header] || "";
+                                                const options = uniqueValues[header];
+                                                const isDropdown = options && options.length > 0;
+                                                const isFieldModified = originalRow && String(value) !== String(originalRow[header]);
+                                                const hasDraft = localDrafts[header] !== undefined;
+                                                const displayValue = hasDraft ? localDrafts[header] : String(value || "—");
+
+                                                return (
+                                                    <div key={header} className="flex flex-col gap-1.5 group/field relative">
+                                                        <div className="flex items-center justify-between group-hover/field:translate-x-0.5 transition-transform duration-200">
+                                                            <label className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest truncate max-w-[140px]">
+                                                                {header}
+                                                            </label>
+                                                            {isFieldModified && (
+                                                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]" title="Modified" />
+                                                            )}
+                                                        </div>
+
+                                                        <div className="relative">
+                                                            {isDropdown ? (
+                                                                <div 
+                                                                    className="-ml-2"
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                >
+                                                                    <EditableDropdown
+                                                                        value={hasDraft ? localDrafts[header] : String(value)}
+                                                                        options={options}
+                                                                        column={header}
+                                                                        rowIndex={rowIndex}
+                                                                        isModified={isFieldModified}
+                                                                        onCommit={(val) => onUpdate(rowIndex, header, val)}
+                                                                        className={cn(
+                                                                            "py-1.5 px-2 text-sm font-semibold transition-all border-none shadow-none focus-within:bg-white dark:focus-within:bg-gray-800",
+                                                                            "bg-transparent hover:bg-gray-100/50 dark:hover:bg-gray-800/50 rounded-lg",
+                                                                            isFieldModified && "text-blue-600 dark:text-blue-400"
+                                                                        )}
+                                                                    />
+                                                                </div>
+                                                            ) : (
+                                                                <textarea
+                                                                    value={displayValue}
+                                                                    onChange={(e) => {
+                                                                        setLocalDrafts(prev => ({ ...prev, [header]: e.target.value }));
+                                                                    }}
+                                                                    onBlur={() => handleCommit(header)}
+                                                                    onKeyDown={(e) => {
+                                                                        if (e.key === 'Enter' && !e.shiftKey) {
+                                                                            e.preventDefault();
+                                                                            handleCommit(header);
+                                                                            (e.target as HTMLTextAreaElement).blur();
+                                                                        }
+                                                                    }}
+                                                                    onClick={(e) => e.stopPropagation()}
+                                                                    className={cn(
+                                                                        "w-full bg-transparent border-none focus:ring-1 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-gray-800 px-2 py-1.5 text-sm font-semibold text-gray-800 dark:text-gray-100 resize-none rounded-lg transition-all",
+                                                                        "hover:bg-gray-100/50 dark:hover:bg-gray-800/50",
+                                                                        isFieldModified && "text-blue-600 dark:text-blue-400",
+                                                                        !value && !hasDraft && "text-gray-300 dark:text-gray-700 italic font-normal"
+                                                                    )}
+                                                                    placeholder="Empty"
+                                                                    rows={1}
+                                                                    onInput={(e) => {
+                                                                        const target = e.target as HTMLTextAreaElement;
+                                                                        target.style.height = 'auto';
+                                                                        target.style.height = `${target.scrollHeight}px`;
+                                                                    }}
+                                                                    style={{ minHeight: '32px', overflow: 'hidden' }}
+                                                                />
+                                                            )}
+                                                            
+                                                            <Edit2 className="absolute right-2 top-2 w-3 h-3 text-gray-300 dark:text-gray-600 opacity-0 group-hover/field:opacity-100 transition-opacity pointer-events-none" />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             </div>

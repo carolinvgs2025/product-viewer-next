@@ -4,12 +4,17 @@ import { Trash2, ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ColumnMetadata } from '@/lib/excel-parser';
 
+import { FilterState } from '@/context/ProjectContext';
+
 interface ProductCardImageOnlyProps {
     data: any;
     headers: string[];
     imageUrl?: string;
     rowIndex: number;
+    uniqueValues?: Record<string, string[]>;
+    onUpdate?: (rowIndex: number, column: string, value: any) => void;
     onDelete: (index: number) => void;
+    activeFilters?: FilterState;
 }
 
 export function ProductCardImageOnly({
@@ -17,14 +22,17 @@ export function ProductCardImageOnly({
     headers,
     imageUrl,
     rowIndex,
+    uniqueValues,
+    onUpdate,
     onDelete,
+    activeFilters
 }: ProductCardImageOnlyProps) {
     // Find ID field dynamically
     const idField = headers.find(h => {
         const lowerHeader = h.toLowerCase().trim();
-        return lowerHeader === 'id' || lowerHeader === 'item number' || lowerHeader === 'upc' || lowerHeader === 'sku';
-    }) || headers[0];
-    const displayId = data[idField];
+        return lowerHeader === 'id' || lowerHeader === 'product id';
+    }) || null;
+    const displayId = idField ? data[idField] : `#${rowIndex + 1}`;
 
     const titleField = headers.find(h => {
         const lowerHeader = h.toLowerCase().trim();
