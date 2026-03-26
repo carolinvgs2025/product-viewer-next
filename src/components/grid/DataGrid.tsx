@@ -145,7 +145,7 @@ export function DataGrid({ onRowClick }: { onRowClick?: (index: number) => void 
     const gridTemplateColumns = `repeat(${headers.length}, minmax(180px, 1fr))`;
 
     return (
-        <div className="w-full h-[600px] border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl flex flex-col">
+        <div className="w-full h-[calc(100vh-240px)] border border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden bg-white dark:bg-gray-900 shadow-2xl flex flex-col">
             <div className="p-4 border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 flex flex-col md:flex-row justify-between items-center gap-4 shrink-0">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full md:w-auto">
                     <h3 className="font-semibold text-gray-700 dark:text-gray-200 whitespace-nowrap">

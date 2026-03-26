@@ -37,7 +37,7 @@ export function CardGrid({ columns = 3, onCardClick }: CardGridProps) {
     return (
         <div
             ref={parentRef}
-            className="w-full h-[800px] overflow-y-auto bg-gray-50 dark:bg-black/20 p-4 rounded-xl border border-gray-200 dark:border-gray-800"
+            className="w-full h-[calc(100vh-240px)] overflow-y-auto bg-gray-50 dark:bg-black/20 p-4 rounded-xl border border-gray-200 dark:border-gray-800"
         >
             <div
                 style={{
